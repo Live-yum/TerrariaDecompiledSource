@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "payloadVersion": "1456",
+  "gameVersion": "1.4.5.6",
+  "source": "game/client/1456/Terraria.exe",
+  "sourceSizeBytes": 25990656,
+  "sourceSha256": "a89a24c6531d88a972662821044acf1b3b5817621dd6c81d4bd7523bc4bbdda9",
+  "decompiler": {
+    "name": "ilspycmd",
+    "version": "11.0.0.9375"
+  }
+}
