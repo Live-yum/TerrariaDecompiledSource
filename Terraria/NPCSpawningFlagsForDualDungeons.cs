@@ -23,13 +23,13 @@ public struct NPCSpawningFlagsForDualDungeons
 
 	public bool ZoneUndergroundDesert;
 
-	public bool CanScan(Tile tile)
+	public bool CanScan(int x, int y)
 	{
-		ushort type = tile.type;
-		if (!tile.active() || !Main.tileSolid[type] || Main.tileSolidTop[type])
+		if (!WorldGen.SolidTile3(x, y))
 		{
 			return false;
 		}
+		ushort type = Main.tile[x, y].type;
 		if (TileID.Sets.Boulders[type])
 		{
 			return false;
@@ -41,14 +41,12 @@ public struct NPCSpawningFlagsForDualDungeons
 		return true;
 	}
 
-	public bool ScanZonesFor(bool scanOnly, int spawnTileX, int spawnTileY, int spawnTileType, int spawnWallType, bool npcSpawnPointIsInDualDungeon)
+	public bool ScanZonesFor(int x, int y)
 	{
-		if (!npcSpawnPointIsInDualDungeon)
-		{
-			return false;
-		}
+		ushort type = Main.tile[x, y].type;
+		ushort wall = Framing.GetTileSafely(x, y - 1).wall;
 		bool result = false;
-		switch (spawnTileType)
+		switch (type)
 		{
 		case 109:
 		case 110:
@@ -61,10 +59,7 @@ public struct NPCSpawningFlagsForDualDungeons
 		case 402:
 		case 403:
 		case 492:
-			if (!scanOnly)
-			{
-				ZoneHallow = true;
-			}
+			ZoneHallow = true;
 			result = true;
 			break;
 		case 147:
@@ -73,10 +68,7 @@ public struct NPCSpawningFlagsForDualDungeons
 		case 162:
 		case 206:
 		case 224:
-			if (!scanOnly)
-			{
-				ZoneSnow = true;
-			}
+			ZoneSnow = true;
 			result = true;
 			break;
 		case 60:
@@ -86,26 +78,20 @@ public struct NPCSpawningFlagsForDualDungeons
 		case 225:
 		case 383:
 		case 384:
-			if (!scanOnly)
-			{
-				ZoneJungle = true;
-			}
+			ZoneJungle = true;
 			result = true;
 			break;
 		case 59:
 		case 120:
-			if (spawnWallType > 0 && WallID.Sets.DualDungeonsJungleBiomeWalls[spawnWallType])
+			if (wall > 0 && WallID.Sets.DualDungeonsJungleBiomeWalls[wall])
 			{
-				if (!scanOnly)
-				{
-					ZoneJungle = true;
-				}
+				ZoneJungle = true;
 				result = true;
 			}
 			break;
 		case 1:
 		case 38:
-			if (spawnWallType > 0 && DungeonGenerationStyles.Cavern.WallIsInStyle(spawnWallType))
+			if (wall > 0 && DungeonGenerationStyles.Cavern.WallIsInStyle(wall))
 			{
 				result = true;
 			}
@@ -113,52 +99,36 @@ public struct NPCSpawningFlagsForDualDungeons
 		case 191:
 			result = true;
 			break;
-		case 22:
 		case 23:
 		case 24:
 		case 25:
 		case 32:
 		case 112:
-		case 140:
 		case 398:
 		case 400:
 		case 474:
 		case 661:
-			if (!scanOnly)
-			{
-				ZoneCorrupt = true;
-			}
+			ZoneCorrupt = true;
 			result = true;
 			break;
 		case 163:
-			if (!scanOnly)
-			{
-				ZoneSnow = (ZoneCorrupt = true);
-			}
+			ZoneSnow = (ZoneCorrupt = true);
 			result = true;
 			break;
 		case 200:
-			if (!scanOnly)
-			{
-				ZoneSnow = (ZoneCrimson = true);
-			}
+			ZoneSnow = (ZoneCrimson = true);
 			result = true;
 			break;
 		case 195:
 		case 199:
 		case 201:
 		case 203:
-		case 204:
 		case 234:
-		case 347:
 		case 352:
 		case 399:
 		case 401:
 		case 662:
-			if (!scanOnly)
-			{
-				ZoneCrimson = true;
-			}
+			ZoneCrimson = true;
 			result = true;
 			break;
 		case 41:
@@ -167,55 +137,59 @@ public struct NPCSpawningFlagsForDualDungeons
 		case 481:
 		case 482:
 		case 483:
-			if (!scanOnly && (double)spawnTileY > Main.rockLayer)
+			if ((double)y > Main.rockLayer)
 			{
 				ZoneDungeon = true;
 			}
 			result = true;
 			break;
 		case 226:
-			if (!scanOnly)
-			{
-				ZoneLihzhardTemple = true;
-			}
+			ZoneLihzhardTemple = true;
 			result = true;
 			break;
 		case 70:
 		case 71:
 		case 72:
 		case 528:
-			if (!scanOnly)
-			{
-				ZoneGlowshroom = true;
-			}
+			ZoneGlowshroom = true;
 			result = true;
 			break;
 		}
-		if (spawnTileType == 123 && spawnWallType > 0)
+		if (type == 123 && wall > 0)
 		{
-			if (spawnWallType > 0 && DungeonGenerationStyles.Cavern.WallIsInStyle(spawnWallType))
+			if (wall > 0 && DungeonGenerationStyles.Cavern.WallIsInStyle(wall))
 			{
 				result = true;
 			}
-			else if (WallID.Sets.DualDungeonsJungleBiomeWalls[spawnWallType])
+			else if (WallID.Sets.DualDungeonsJungleBiomeWalls[wall])
 			{
-				if (!scanOnly)
-				{
-					ZoneJungle = true;
-				}
+				ZoneJungle = true;
 				result = true;
 			}
-			else if (spawnWallType == DungeonGenerationStyles.Temple.BrickWallType)
+			else if (wall == DungeonGenerationStyles.Temple.BrickWallType)
 			{
-				if (!scanOnly)
-				{
-					ZoneLihzhardTemple = true;
-				}
+				ZoneLihzhardTemple = true;
 				result = true;
 			}
 		}
-		switch (spawnTileType)
+		switch (type)
 		{
+		case 22:
+		case 140:
+			if (wall == 69 || wall == 217 || wall == 220 || wall == 3 || wall == 233)
+			{
+				ZoneCorrupt = true;
+				result = true;
+			}
+			break;
+		case 204:
+		case 347:
+			if (wall == 81 || wall == 218 || wall == 221 || wall == 83 || wall == 77)
+			{
+				ZoneCrimson = true;
+				result = true;
+			}
+			break;
 		case 53:
 		case 112:
 		case 116:
@@ -228,12 +202,9 @@ public struct NPCSpawningFlagsForDualDungeons
 		case 401:
 		case 402:
 		case 403:
-			if (WallID.Sets.Conversion.HardenedSand[spawnWallType] || WallID.Sets.Conversion.Sandstone[spawnWallType] || spawnWallType == 223)
+			if (WallID.Sets.Conversion.HardenedSand[wall] || WallID.Sets.Conversion.Sandstone[wall] || wall == 223)
 			{
-				if (!scanOnly)
-				{
-					ZoneUndergroundDesert = true;
-				}
+				ZoneUndergroundDesert = true;
 				result = true;
 			}
 			break;

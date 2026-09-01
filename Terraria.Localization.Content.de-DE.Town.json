@@ -1566,7 +1566,7 @@
 		"Rain1": "Ja, ich kann raus in den Regen gehen ohne zu schmelzen. Ich bin ein Zauberer, verdammt noch mal!",
 		"Rain2": "Raindrops are falling on my ... ähm ... Wo bin ich?! Wer bist du? ... Wer bin ich?",
 		"LuckIsCursed1": "Bleib weg von mir! Du ziehst ja einen gewaltigen Schweif aus Pech hinter dir her! Ich will davon nichts haben!",
-		"LuckIsCursed2": "Hast du jeden Spiegel in WorldName zerstört?! Du närrischer Mensch, du bist verflucht und niemand kann dir helfen!",
+		"LuckIsCursed2": "Hast du jeden Spiegel in {WorldName} zerschlagen?! Du unglückseliger Narr, du bist hoffnungslos verflucht!!",
 		"LuckIsTerrible1": "Ich spüre ein schreckliches Schicksal, das dich umgibt! Heute solltest du im Bett bleiben!",
 		"LuckIsTerrible2": "Was für ein Salz hast du denn verschüttet, dass du solches Pech hast?",
 		"LuckIsPoor1": "Negative Energie strömt aus deinen Poren. Ich würde heute lieber kein Risiko eingehen.",
@@ -2205,7 +2205,7 @@
 		"LikeNPC": "{NPCName} scheint mich wie ein anderer Mensch zu behandeln. Mir scheint, als würde ich das zu schätzen wissen.",
 		"LoveNPC": "Ich liebe es, in der Nähe von {NPCName} zu sein.",
 		"DislikeNPC": "{NPCName} hat kein Verständnis für meine Existenz, da sie von der Norm abweicht. Wie ungewöhnlich. Das negative Empfinden beruht auf Gegenseitigkeit.",
-		"HateNPC": "{NPCName}s Funktionen sind wissenschaftlich nicht analysierbar. Neurale Funktionen sind überlastet. Übersetzung: Ich hasse dies.",
+		"HateNPC": "Die Funktionen von {NPCName} können nicht wissenschaftlich analysiert werden. Neuralfunktionen sind überladen. Übersetzung: Ich hasse das.",
 		"LikeNPC_Princess": "Resultat der Analyse von {NPCName}: Positivste auf Kohlenstoff basierte Lebensform seit Aufzeichnungsbeginn."
 	},
 	"TownNPCMood_SantaClaus": {

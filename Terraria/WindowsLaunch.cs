@@ -66,6 +66,8 @@ public static class WindowsLaunch
 			stream.Read(array, 0, array.Length);
 			return Assembly.Load(array);
 		};
+		_handleRoutine = ConsoleCtrlCheck;
+		SetConsoleCtrlHandler(_handleRoutine, add: true);
 		Program.LaunchGame(args);
 	}
 }

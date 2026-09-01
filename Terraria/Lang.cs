@@ -42,7 +42,7 @@ public class Lang
 	public static LocalizedText[] mp = new LocalizedText[27];
 
 	[Old("Lang arrays have been replaced with the new Language.GetText system.")]
-	public static LocalizedText[] chestType = new LocalizedText[52];
+	public static LocalizedText[] chestType = new LocalizedText[54];
 
 	[Old("Lang arrays have been replaced with the new Language.GetText system.")]
 	public static LocalizedText[] dresserType = new LocalizedText[65];
@@ -154,10 +154,15 @@ public class Lang
 		RegisterGlobalSubstitution("InputTrigger_RadialHotbar", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "HotbarPlus"));
 		RegisterGlobalSubstitution("InputTrigger_SmartCursor", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "SmartCursor"));
 		RegisterGlobalSubstitution("InputTrigger_UseOrAttack", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "MouseLeft"));
+		RegisterGlobalSubstitution("InputTrigger_Jump", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "Jump"));
 		RegisterGlobalSubstitution("InputTrigger_InteractWithTile", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "MouseRight"));
 		RegisterGlobalSubstitution("InputTrigger_InteractWithTileUI", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: false, "MouseRight"));
 		RegisterGlobalSubstitution("InputTrigger_ToggleOrOpen", () => (!PlayerInput.UsingGamepad) ? PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "MouseRight") : PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: false, "Grapple"));
 		RegisterGlobalSubstitution("InputTrigger_SmartSelect", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "SmartSelect"));
+		RegisterGlobalSubstitution("InputTrigger_Mount", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "QuickMount"));
+		RegisterGlobalSubstitution("InputTrigger_Healing", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "QuickHeal"));
+		RegisterGlobalSubstitution("InputTrigger_ManaHealing", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "QuickMana"));
+		RegisterGlobalSubstitution("InputTrigger_QuickBuff", () => PlayerInput.GenerateInputTag_ForCurrentGamemode(tagForGameplay: true, "QuickBuff"));
 		RegisterGlobalSubstitution("ToggleArmorSetBonusKey", () => Language.GetTextValue(Main.ReversedUpDownArmorSetBonuses ? "Key.UP" : "Key.DOWN"));
 	}
 
@@ -417,11 +422,6 @@ public class Lang
 		return npc.FullName;
 	}
 
-	public static LanguageSearchFilter CreateDialogFilter(string startsWith, object substitutions)
-	{
-		return (string key, LocalizedText text) => key.StartsWith(startsWith) && text.ConditionsMetWith(substitutions);
-	}
-
 	public static LanguageSearchFilter CreateDialogFilter(string startsWith, bool checkConditions = true)
 	{
 		return (string key, LocalizedText text) => key.StartsWith(startsWith) && (!checkConditions || text.ConditionsMet);
@@ -499,17 +499,21 @@ public class Lang
 		{
 			tip[n] = Language.GetText("LegacyTooltip." + n);
 		}
-		for (int num = 0; num < chestType.Length; num++)
+		for (int num = 0; num < 52; num++)
 		{
 			chestType[num] = Language.GetText("LegacyChestType." + num);
 		}
-		for (int num2 = 0; num2 < chestType2.Length; num2++)
+		for (int num2 = 52; num2 < chestType.Length; num2++)
 		{
-			chestType2[num2] = Language.GetText("LegacyChestType2." + num2);
+			chestType[num2] = chestType[0];
 		}
-		for (int num3 = 0; num3 < dresserType.Length; num3++)
+		for (int num3 = 0; num3 < chestType2.Length; num3++)
 		{
-			dresserType[num3] = Language.GetText("LegacyDresserType." + num3);
+			chestType2[num3] = Language.GetText("LegacyChestType2." + num3);
+		}
+		for (int num4 = 0; num4 < dresserType.Length; num4++)
+		{
+			dresserType[num4] = Language.GetText("LegacyDresserType." + num4);
 		}
 		FillNameCacheArray<ItemID, short>("ItemName", _itemNameCache);
 		FillNameCacheArray<ProjectileID, short>("ProjectileName", _projectileNameCache);
@@ -517,9 +521,9 @@ public class Lang
 		FillNameCacheArray<BuffID, int>("BuffName", _buffNameCache);
 		FillNameCacheArray<BuffID, int>("BuffDescription", _buffDescriptionCache);
 		FillNameCacheArray<EmoteID, int>("EmojiName", _emojiNameCache, leaveMissingEntriesBlank: true);
-		for (int num4 = -65; num4 < 0; num4++)
+		for (int num5 = -65; num5 < 0; num5++)
 		{
-			_negativeNpcNameCache[-num4 - 1] = _npcNameCache[NPCID.FromNetId(num4)];
+			_negativeNpcNameCache[-num5 - 1] = _npcNameCache[NPCID.FromNetId(num5)];
 		}
 		_negativeNpcNameCache[0] = Language.GetText("NPCName.Slimeling");
 		_negativeNpcNameCache[1] = Language.GetText("NPCName.Slimer2");
@@ -533,18 +537,18 @@ public class Lang
 		_negativeNpcNameCache[9] = Language.GetText("NPCName.JungleSlime");
 		_negativeNpcNameCache[53] = Language.GetText("NPCName.SmallRainZombie");
 		_negativeNpcNameCache[54] = Language.GetText("NPCName.BigRainZombie");
-		for (int num5 = 0; num5 < _itemTooltipCache.Length; num5++)
+		for (int num6 = 0; num6 < _itemTooltipCache.Length; num6++)
 		{
-			_itemTooltipCache[num5] = ItemTooltip.None;
+			_itemTooltipCache[num6] = ItemTooltip.None;
 		}
 		(from f in typeof(ItemID).GetFields(BindingFlags.Static | BindingFlags.Public)
 			where f.FieldType == typeof(short)
 			select f).ToList().ForEach(delegate(FieldInfo field)
 		{
-			short num6 = (short)field.GetValue(null);
-			if (num6 > 0 && num6 < _itemTooltipCache.Length)
+			short num7 = (short)field.GetValue(null);
+			if (num7 > 0 && num7 < _itemTooltipCache.Length)
 			{
-				_itemTooltipCache[num6] = ItemTooltip.FromLanguageKey("ItemTooltip." + field.Name);
+				_itemTooltipCache[num7] = ItemTooltip.FromLanguageKey("ItemTooltip." + field.Name);
 			}
 		});
 		InitGlobalSubstitutions();
@@ -789,6 +793,7 @@ public class Lang
 		_mapLegendCache[MapHelper.TileToLookup(656, 0)] = itemNameCache[5333];
 		_mapLegendCache[MapHelper.TileToLookup(701, 0)] = itemNameCache[5333];
 		_mapLegendCache[MapHelper.TileToLookup(236, 0)] = itemNameCache[1291];
+		_mapLegendCache[MapHelper.TileToLookup(702, 0)] = itemNameCache[1291];
 		_mapLegendCache[MapHelper.TileToLookup(237, 0)] = itemNameCache[1292];
 		_mapLegendCache[MapHelper.TileToLookup(238, 0)] = Language.GetText("MapObject.PlanterasBulb");
 		_mapLegendCache[MapHelper.TileToLookup(239, 0)] = Language.GetText("MapObject.MetalBar");
@@ -1119,6 +1124,9 @@ public class Lang
 				break;
 			case 22:
 				result = NetworkText.FromKey("DeathText.VampireBurningInDaylight_" + (Main.rand.Next(6) + 1), deadPlayerName, Main.worldName);
+				break;
+			case 23:
+				result = NetworkText.FromKey("DeathText.Spored", deadPlayerName);
 				break;
 			case 255:
 				result = NetworkText.FromKey("DeathText.Slain", deadPlayerName);

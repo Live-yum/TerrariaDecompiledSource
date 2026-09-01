@@ -6,23 +6,15 @@ namespace Terraria;
 
 public class Framing
 {
-	private struct BlockStyle
+	private struct BlockStyle(bool up, bool down, bool left, bool right)
 	{
-		public bool top;
+		public bool top = up;
 
-		public bool bottom;
+		public bool bottom = down;
 
-		public bool left;
+		public bool left = left;
 
-		public bool right;
-
-		public BlockStyle(bool up, bool down, bool left, bool right)
-		{
-			top = up;
-			bottom = down;
-			this.left = left;
-			this.right = right;
-		}
+		public bool right = right;
 
 		public void Clear()
 		{

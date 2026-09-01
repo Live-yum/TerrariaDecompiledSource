@@ -8,7 +8,7 @@ namespace Terraria;
 
 public class HitTile
 {
-	public class HitTileObject
+	public struct HitTileObject
 	{
 		public int X;
 
@@ -26,11 +26,6 @@ public class HitTile
 
 		public Vector2 animationDirection;
 
-		public HitTileObject()
-		{
-			Clear();
-		}
-
 		public void Clear()
 		{
 			X = 0;
@@ -46,6 +41,27 @@ public class HitTile
 			{
 			}
 			lastCrack = crackStyle;
+		}
+
+		public void Prepare(int x, int y, int hitType)
+		{
+			X = x;
+			Y = y;
+			type = hitType;
+		}
+
+		public void SetPosition(int x, int y)
+		{
+			X = x;
+			Y = y;
+		}
+
+		public void AddDamage(int damageAmount)
+		{
+			damage += damageAmount;
+			timeToLive = 60;
+			animationTimeElapsed = 0;
+			animationDirection = (Main.rand.NextFloat() * ((float)Math.PI * 2f)).ToRotationVector2() * 2f;
 		}
 	}
 
@@ -101,7 +117,7 @@ public class HitTile
 		order = new int[501];
 		for (int i = 0; i <= 500; i++)
 		{
-			data[i] = new HitTileObject();
+			data[i].Clear();
 			order[i] = i;
 		}
 		bufferLocation = 0;
@@ -140,11 +156,10 @@ public class HitTile
 
 	public int HitObject(int x, int y, int hitType)
 	{
-		HitTileObject hitTileObject;
 		for (int i = 0; i <= 500; i++)
 		{
 			int num = order[i];
-			hitTileObject = data[num];
+			HitTileObject hitTileObject = data[num];
 			if (hitTileObject.type == hitType)
 			{
 				if (hitTileObject.X == x && hitTileObject.Y == y)
@@ -157,10 +172,7 @@ public class HitTile
 				break;
 			}
 		}
-		hitTileObject = data[bufferLocation];
-		hitTileObject.X = x;
-		hitTileObject.Y = y;
-		hitTileObject.type = hitType;
+		data[bufferLocation].Prepare(x, y, hitType);
 		return bufferLocation;
 	}
 
@@ -168,9 +180,7 @@ public class HitTile
 	{
 		if (tileId >= 0 && tileId <= 500)
 		{
-			HitTileObject obj = data[tileId];
-			obj.X = x;
-			obj.Y = y;
+			data[tileId].SetPosition(x, y);
 		}
 	}
 
@@ -184,17 +194,13 @@ public class HitTile
 		{
 			return 0;
 		}
-		HitTileObject hitTileObject = data[tileId];
 		if (!updateAmount)
 		{
-			return hitTileObject.damage + damageAmount;
+			return data[tileId].damage + damageAmount;
 		}
-		hitTileObject.damage += damageAmount;
-		hitTileObject.timeToLive = 60;
-		hitTileObject.animationTimeElapsed = 0;
-		hitTileObject.animationDirection = (Main.rand.NextFloat() * ((float)Math.PI * 2f)).ToRotationVector2() * 2f;
+		data[tileId].AddDamage(damageAmount);
 		SortSlots(tileId);
-		return hitTileObject.damage;
+		return data[tileId].damage;
 	}
 
 	private void SortSlots(int tileId)
@@ -251,53 +257,7 @@ public class HitTile
 		bool flag = false;
 		for (int i = 0; i <= 500; i++)
 		{
-			HitTileObject hitTileObject = data[i];
-			if (hitTileObject.type == 0)
-			{
-				continue;
-			}
-			Tile tile = Main.tile[hitTileObject.X, hitTileObject.Y];
-			if (hitTileObject.timeToLive <= 1)
-			{
-				hitTileObject.Clear();
-				flag = true;
-				continue;
-			}
-			hitTileObject.timeToLive--;
-			if ((double)hitTileObject.timeToLive < 12.0)
-			{
-				hitTileObject.damage -= 10;
-			}
-			else if ((double)hitTileObject.timeToLive < 24.0)
-			{
-				hitTileObject.damage -= 7;
-			}
-			else if ((double)hitTileObject.timeToLive < 36.0)
-			{
-				hitTileObject.damage -= 5;
-			}
-			else if ((double)hitTileObject.timeToLive < 48.0)
-			{
-				hitTileObject.damage -= 2;
-			}
-			if (hitTileObject.damage < 0)
-			{
-				hitTileObject.Clear();
-				flag = true;
-			}
-			else if (hitTileObject.type == 1)
-			{
-				if (!tile.active())
-				{
-					hitTileObject.Clear();
-					flag = true;
-				}
-			}
-			else if (tile.wall == 0)
-			{
-				hitTileObject.Clear();
-				flag = true;
-			}
+			flag |= Prune(ref data[i]);
 		}
 		if (!flag)
 		{
@@ -318,6 +278,56 @@ public class HitTile
 				}
 			}
 		}
+	}
+
+	private static bool Prune(ref HitTileObject dataObject)
+	{
+		if (dataObject.type == 0)
+		{
+			return false;
+		}
+		Tile tile = Main.tile[dataObject.X, dataObject.Y];
+		if (dataObject.timeToLive <= 1)
+		{
+			dataObject.Clear();
+			return true;
+		}
+		dataObject.timeToLive--;
+		if ((double)dataObject.timeToLive < 12.0)
+		{
+			dataObject.damage -= 10;
+		}
+		else if ((double)dataObject.timeToLive < 24.0)
+		{
+			dataObject.damage -= 7;
+		}
+		else if ((double)dataObject.timeToLive < 36.0)
+		{
+			dataObject.damage -= 5;
+		}
+		else if ((double)dataObject.timeToLive < 48.0)
+		{
+			dataObject.damage -= 2;
+		}
+		if (dataObject.damage < 0)
+		{
+			dataObject.Clear();
+			return true;
+		}
+		if (dataObject.type == 1)
+		{
+			if (!tile.active())
+			{
+				dataObject.Clear();
+				return true;
+			}
+		}
+		else if (tile.wall == 0)
+		{
+			dataObject.Clear();
+			return true;
+		}
+		return false;
 	}
 
 	public void DrawFreshAnimations(SpriteBatch spriteBatch)

@@ -1566,7 +1566,7 @@
 		"Rain1": "Oui, je peux sortir sous la pluie sans fondre. Je suis un magicien, bon sang !",
 		"Rain2": "Des gouttes d'eau me tombent sur... euh... Où suis-je ? Qui es-tu ? ... Qui suis-je ?",
 		"LuckIsCursed1": "Ne t'approche pas ! Tu traînes une monstrueuse malchance derrière toi ! Je ne veux rien avoir à faire avec ça !",
-		"LuckIsCursed2": "Est-ce que tu as brisé tous les miroirs dans WorldName ?! Quel malheur, rien ne pourra plus te sauver de la malédiction !",
+		"LuckIsCursed2": "Est-ce que tu as brisé tous les miroirs dans {WorldName} ?! Quel malheur, rien ne pourra plus te sauver de la malédiction !",
 		"LuckIsTerrible1": "Je sens un destin terrible qui t'entoure ! Tu devrais rester au lit aujourd'hui !",
 		"LuckIsTerrible2": "Quel genre de sel as-tu renversé pour recevoir une telle malchance ?",
 		"LuckIsPoor1": "Une énergie négative coule de tes pores. Je ne risquerais rien aujourd'hui à ta place.",
@@ -2205,7 +2205,7 @@
 		"LikeNPC": "{NPCName} tente de me traiter favorablement comme tout autre humain. Il semble que ça me plaise.",
 		"LoveNPC": "J'adore la compagnie de {NPCName}.",
 		"DislikeNPC": "{NPCName} ne comprend pas mon existence, car cela dévie de la norme. Inhabituel. Le sentiment négatif est mutuel.",
-		"HateNPC": "Les fonctions de {NPCName}ne peuvent pas être analysées scientifiquement. Fonctions neuronales surchargées. Traduction : je déteste ce qu'il se passe.",
+		"HateNPC": "Les fonctions de {NPCName} ne peuvent pas être analysées scientifiquement. Fonctions neuronales surchargées. Traduction : je déteste ce qu'il se passe.",
 		"LikeNPC_Princess": "{NPCName} analysée : forme de vie de carbone la plus complète jamais enregistrée."
 	},
 	"TownNPCMood_SantaClaus": {

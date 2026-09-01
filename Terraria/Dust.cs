@@ -31,7 +31,7 @@ public class Dust
 
 	public bool noLight;
 
-	public bool noLightEmittence;
+	public bool noLightEmittance;
 
 	public bool fullBright;
 
@@ -177,7 +177,7 @@ public class Dust
 			dust.frame.Y = 10 * Main.rand.Next(3);
 			dust.shader = null;
 			dust.customData = null;
-			dust.noLightEmittence = false;
+			dust.noLightEmittance = false;
 			dust.fullBright = false;
 			int num4 = Type;
 			while (num4 >= 100)
@@ -493,7 +493,7 @@ public class Dust
 				}
 				if (dust.type == 325)
 				{
-					if (!dust.noLight && !dust.noLightEmittence)
+					if (!dust.noLight && !dust.noLightEmittance)
 					{
 						float num4 = dust.scale * 0.6f;
 						if (num4 > 1f)
@@ -522,7 +522,7 @@ public class Dust
 						}
 					}
 				}
-				if (((dust.type >= 86 && dust.type <= 92) || dust.type == 286) && !dust.noLight && !dust.noLightEmittence)
+				if (((dust.type >= 86 && dust.type <= 92) || dust.type == 286) && !dust.noLight && !dust.noLightEmittance)
 				{
 					float num8 = dust.scale * 0.6f;
 					if (num8 > 1f)
@@ -709,7 +709,7 @@ public class Dust
 				}
 				if (dust.type == 261)
 				{
-					if (!dust.noLight && !dust.noLightEmittence)
+					if (!dust.noLight && !dust.noLightEmittance)
 					{
 						float num26 = dust.scale * 0.3f;
 						if (num26 > 1f)
@@ -860,7 +860,7 @@ public class Dust
 					num58 *= 1f;
 					Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), 12, num56);
 				}
-				if (dust.type == 234 && !dust.noLightEmittence)
+				if (dust.type == 234 && !dust.noLightEmittance)
 				{
 					float lightAmount = dust.scale * 0.6f;
 					_ = dust.type;
@@ -915,7 +915,7 @@ public class Dust
 							dust.velocity = (dust.velocity * 4f + vector4 * dust.velocity.Length()) / 5f;
 						}
 					}
-					if (!dust.noLight && !dust.noLightEmittence)
+					if (!dust.noLight && !dust.noLightEmittance)
 					{
 						float num60 = dust.scale * 1.4f;
 						if (dust.type == 29)
@@ -1464,7 +1464,7 @@ public class Dust
 					num75 *= num78;
 					num76 *= num78;
 					num77 *= num78;
-					if (!dust.noLightEmittence)
+					if (!dust.noLightEmittance)
 					{
 						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num75, num76, num77);
 					}
@@ -1506,7 +1506,7 @@ public class Dust
 					{
 						dust.active = false;
 					}
-					else if (!dust.noLightEmittence)
+					else if (!dust.noLightEmittance)
 					{
 						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num79, num80, num81);
 					}
@@ -1520,7 +1520,7 @@ public class Dust
 				{
 					dust.velocity.Y *= 0.98f;
 					dust.velocity.X *= 0.98f;
-					if (!dust.noLightEmittence)
+					if (!dust.noLightEmittance)
 					{
 						float num85 = dust.scale;
 						if (dust.type != 15)
@@ -1667,6 +1667,11 @@ public class Dust
 					{
 						dust.rotation += 1f;
 					}
+					if (dust.customData != null && dust.customData is Player)
+					{
+						Player player9 = (Player)dust.customData;
+						dust.position += player9.position - player9.oldPosition;
+					}
 					dust.velocity.Y *= 0.98f;
 					dust.velocity.X *= 0.98f;
 					dust.scale += 0.02f;
@@ -1679,7 +1684,7 @@ public class Dust
 					{
 						dust.noLight = false;
 					}
-					if (!dust.noLight && !dust.noLightEmittence)
+					if (!dust.noLight && !dust.noLightEmittance)
 					{
 						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num95 * ((float)(int)dust.color.R / 255f), num95 * ((float)(int)dust.color.G / 255f), num95 * ((float)(int)dust.color.B / 255f));
 					}
@@ -1694,7 +1699,7 @@ public class Dust
 					{
 						num96 = 1f;
 					}
-					if (dust.type == 21 && !dust.noLightEmittence)
+					if (dust.type == 21 && !dust.noLightEmittance)
 					{
 						num96 = dust.scale * 0.4f;
 						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num96 * 0.8f, num96 * 0.3f, num96);
@@ -1759,7 +1764,7 @@ public class Dust
 				else if (dust.type == 55 || dust.type == 56 || dust.type == 73 || dust.type == 74)
 				{
 					dust.velocity *= 0.98f;
-					if (!dust.noLightEmittence)
+					if (!dust.noLightEmittance)
 					{
 						float num98 = dust.scale * 0.8f;
 						if (dust.type == 55)
@@ -2010,7 +2015,7 @@ public class Dust
 					{
 						num103 = 1f;
 					}
-					if (!dust.noLightEmittence)
+					if (!dust.noLightEmittance)
 					{
 						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num103 * 0.1f, num103, num103 * 0.4f);
 					}
@@ -2244,7 +2249,7 @@ public class Dust
 					{
 						num113 = 1f;
 					}
-					if (!dust.noLight && !dust.noLightEmittence)
+					if (!dust.noLight && !dust.noLightEmittance)
 					{
 						Lighting.AddLight(dust.position, dust.color.ToVector3() * num113);
 					}
@@ -2305,8 +2310,8 @@ public class Dust
 					dust.scale -= 0.0025f;
 					if (dust.customData != null && dust.customData is Player)
 					{
-						Player player9 = (Player)dust.customData;
-						dust.position += player9.position - player9.oldPosition;
+						Player player10 = (Player)dust.customData;
+						dust.position += player10.position - player10.oldPosition;
 					}
 				}
 				else if (dust.type == 226)
@@ -2331,29 +2336,52 @@ public class Dust
 					dust.velocity *= new Vector2(0.97f, 0.99f);
 					if (dust.customData != null && dust.customData is Player)
 					{
-						Player player10 = (Player)dust.customData;
-						dust.position += player10.position - player10.oldPosition;
+						Player player11 = (Player)dust.customData;
+						dust.position += player11.position - player11.oldPosition;
 					}
 					if (dust.customData != null && dust.customData is Color)
 					{
 						Color color3 = (Color)dust.customData;
-						if (!dust.noLightEmittence)
+						if (!dust.noLightEmittance)
 						{
 							Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num115 * (float)(int)color3.R / 255f, num115 * (float)(int)color3.G / 255f, num115 * (float)(int)color3.B / 255f);
 						}
 					}
 					dust.scale -= 0.01f;
 				}
-				else if (dust.type == 272)
+				else if (dust.type == 331)
 				{
 					float num116 = dust.scale;
 					if (num116 > 1f)
 					{
 						num116 = 1f;
 					}
+					if (dust.noGravity)
+					{
+						dust.velocity *= 0.93f;
+						if (dust.fadeIn == 0f)
+						{
+							dust.scale += 0.0025f;
+						}
+					}
+					dust.velocity *= new Vector2(0.97f, 0.99f);
+					Color color4 = dust.color;
+					if (!dust.noLightEmittance)
+					{
+						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num116 * (float)(int)color4.R / 255f, num116 * (float)(int)color4.G / 255f, num116 * (float)(int)color4.B / 255f);
+					}
+					dust.scale -= 0.01f;
+				}
+				else if (dust.type == 272)
+				{
+					float num117 = dust.scale;
+					if (num117 > 1f)
+					{
+						num117 = 1f;
+					}
 					if (!dust.noLight)
 					{
-						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num116 * 0.5f, num116 * 0.2f, num116 * 0.8f);
+						Lighting.AddLight((int)(dust.position.X / 16f), (int)(dust.position.Y / 16f), num117 * 0.5f, num117 * 0.2f, num117 * 0.8f);
 					}
 					if (dust.noGravity)
 					{
@@ -2366,8 +2394,8 @@ public class Dust
 					dust.velocity *= new Vector2(0.97f, 0.99f);
 					if (dust.customData != null && dust.customData is Player)
 					{
-						Player player11 = (Player)dust.customData;
-						dust.position += player11.position - player11.oldPosition;
+						Player player12 = (Player)dust.customData;
+						dust.position += player12.position - player12.oldPosition;
 					}
 					if (dust.customData != null && dust.customData is NPC)
 					{
@@ -2388,7 +2416,7 @@ public class Dust
 				{
 					dust.active = false;
 				}
-				float num117 = 0.1f;
+				float num118 = 0.1f;
 				if ((double)dCount == 0.5)
 				{
 					dust.scale -= 0.001f;
@@ -2411,25 +2439,25 @@ public class Dust
 				}
 				if ((double)dCount == 0.5)
 				{
-					num117 = 0.11f;
+					num118 = 0.11f;
 				}
 				if ((double)dCount == 0.6)
 				{
-					num117 = 0.13f;
+					num118 = 0.13f;
 				}
 				if ((double)dCount == 0.7)
 				{
-					num117 = 0.16f;
+					num118 = 0.16f;
 				}
 				if ((double)dCount == 0.8)
 				{
-					num117 = 0.22f;
+					num118 = 0.22f;
 				}
 				if ((double)dCount == 0.9)
 				{
-					num117 = 0.25f;
+					num118 = 0.25f;
 				}
-				if (dust.scale < num117)
+				if (dust.scale < num118)
 				{
 					dust.active = false;
 				}
@@ -2439,24 +2467,24 @@ public class Dust
 				dust.active = false;
 			}
 		}
-		int num118 = num;
-		if ((double)num118 > (double)Main.maxDustToDraw * 0.9)
+		int num119 = num;
+		if ((double)num119 > (double)Main.maxDustToDraw * 0.9)
 		{
 			dCount = 0.9f;
 		}
-		else if ((double)num118 > (double)Main.maxDustToDraw * 0.8)
+		else if ((double)num119 > (double)Main.maxDustToDraw * 0.8)
 		{
 			dCount = 0.8f;
 		}
-		else if ((double)num118 > (double)Main.maxDustToDraw * 0.7)
+		else if ((double)num119 > (double)Main.maxDustToDraw * 0.7)
 		{
 			dCount = 0.7f;
 		}
-		else if ((double)num118 > (double)Main.maxDustToDraw * 0.6)
+		else if ((double)num119 > (double)Main.maxDustToDraw * 0.6)
 		{
 			dCount = 0.6f;
 		}
-		else if ((double)num118 > (double)Main.maxDustToDraw * 0.5)
+		else if ((double)num119 > (double)Main.maxDustToDraw * 0.5)
 		{
 			dCount = 0.5f;
 		}

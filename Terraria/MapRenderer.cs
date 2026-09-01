@@ -261,7 +261,7 @@ public class MapRenderer
 		}
 		int num = i - rX * textureMaxWidth;
 		int num2 = j - rY * textureMaxHeight;
-		Color mapTileXnaColor = MapHelper.GetMapTileXnaColor(mapTile);
+		Color mapTileXnaColor = MapHelper.GetMapTileXnaColor(mapTile, i, j);
 		int num3 = 1;
 		int num4 = 1;
 		int num5 = j + 1;
@@ -342,7 +342,7 @@ public class MapRenderer
 			for (int j = num; j < num2; j++)
 			{
 				MapTile tile = Main.Map[j, i];
-				mapColorCacheArray[num9] = MapHelper.GetMapTileXnaColor(tile);
+				mapColorCacheArray[num9] = MapHelper.GetMapTileXnaColor(tile, j, i);
 				num9++;
 			}
 		}

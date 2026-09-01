@@ -71,6 +71,8 @@ public class WaterfallManager
 
 	private static readonly uint Layer_Waterfall = 1u;
 
+	private static bool _shouldShowInvisibleBlocksAndWalls = false;
+
 	public void BindTo(Preferences preferences)
 	{
 		preferences.OnLoad += Configuration_OnLoad;
@@ -122,21 +124,21 @@ public class WaterfallManager
 		num2 += waterfallDist;
 		num3 -= waterfallDist;
 		num4 += 20;
-		if (num < 0)
+		if (num <= 0)
 		{
-			num = 0;
+			num = 1;
 		}
-		if (num2 > Main.maxTilesX)
+		if (num2 >= Main.maxTilesX)
 		{
-			num2 = Main.maxTilesX;
+			num2 = Main.maxTilesX - 1;
 		}
-		if (num3 < 0)
+		if (num3 <= 0)
 		{
-			num3 = 0;
+			num3 = 1;
 		}
-		if (num4 > Main.maxTilesY)
+		if (num4 >= Main.maxTilesY)
 		{
-			num4 = Main.maxTilesY;
+			num4 = Main.maxTilesY - 1;
 		}
 		for (int i = num; i < num2; i++)
 		{
@@ -436,8 +438,8 @@ public class WaterfallManager
 							break;
 						}
 					}
-					Rectangle value = new Rectangle(num24 * 18, 0, 16, 16);
-					Rectangle value2 = new Rectangle(num23 * 18, 0, 16, 16);
+					Rectangle sourceRectangle = new Rectangle(num24 * 18, 0, 16, 16);
+					Rectangle sourceRectangle2 = new Rectangle(num23 * 18, 0, 16, 16);
 					Vector2 origin = new Vector2(8f, 8f);
 					Vector2 position = ((num14 % 2 != 0) ? (new Vector2(num13 * 16 + 8, num14 * 16 + 8) - Main.screenPosition) : (new Vector2(num13 * 16 + 9, num14 * 16 + 8) - Main.screenPosition));
 					if (!WorldGen.InWorld(num13, num14 - 1))
@@ -474,15 +476,15 @@ public class WaterfallManager
 						switch (num12)
 						{
 						case 22:
-							Main.tileBatch.Draw(waterfallTexture[22].Value, position, value2, color2, origin, 1f, SpriteEffects.None);
+							Main.tileBatch.Draw(waterfallTexture[22].Value, position, sourceRectangle2, color2, origin);
 							break;
 						case 26:
-							Main.tileBatch.Draw(waterfallTexture[27].Value, position, value, color3, origin, 1f, SpriteEffects.None);
-							Main.tileBatch.Draw(waterfallTexture[26].Value, position, value2, color2, origin, 1f, SpriteEffects.None);
+							Main.tileBatch.Draw(waterfallTexture[27].Value, position, sourceRectangle, color3, origin);
+							Main.tileBatch.Draw(waterfallTexture[26].Value, position, sourceRectangle2, color2, origin);
 							break;
 						default:
-							Main.tileBatch.Draw(waterfallTexture[12].Value, position, value, color3, origin, 1f, SpriteEffects.None);
-							Main.tileBatch.Draw(waterfallTexture[11].Value, position, value2, color2, origin, 1f, SpriteEffects.None);
+							Main.tileBatch.Draw(waterfallTexture[12].Value, position, sourceRectangle, color3, origin);
+							Main.tileBatch.Draw(waterfallTexture[11].Value, position, sourceRectangle2, color2, origin);
 							break;
 						}
 						if (flag)
@@ -506,8 +508,8 @@ public class WaterfallManager
 							{
 								break;
 							}
-							value2.Height -= num28;
-							value.Height -= num28;
+							sourceRectangle2.Height -= num28;
+							sourceRectangle.Height -= num28;
 						}
 						if (num14 % 2 == 0)
 						{
@@ -1034,7 +1036,7 @@ public class WaterfallManager
 			1 => 1f, 
 			14 => 0.8f, 
 			25 => 0.75f, 
-			_ => (tileCache.wall != 0 || !((double)y < Main.worldSurface)) ? (0.6f * Alpha) : Alpha, 
+			_ => ((tileCache.wall != 0 && (_shouldShowInvisibleBlocksAndWalls || (tileCache.wall != 318 && !tileCache.invisibleWall()))) || !((double)y < Main.worldSurface)) ? (0.6f * Alpha) : Alpha, 
 		};
 		if (s > maxSteps - 10)
 		{
@@ -1162,6 +1164,7 @@ public class WaterfallManager
 
 	public void Draw()
 	{
+		_shouldShowInvisibleBlocksAndWalls = Main.ShouldShowInvisibleBlocksAndWalls();
 		for (int i = 0; i < currentMax; i++)
 		{
 			waterfalls[i].stopAtStep = waterfallDist;

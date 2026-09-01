@@ -28,5 +28,7 @@ public static class SkyblockIslandID
 
 	public const int ShimmerLake = 12;
 
-	public static int Count = 13;
+	public const int TeamSpawn = 13;
+
+	public static int Count = 14;
 }

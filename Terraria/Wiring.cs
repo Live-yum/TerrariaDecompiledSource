@@ -808,7 +808,7 @@ public static class Wiring
 					{
 						flag7 = false;
 					}
-					flag7 = Main.rand.NextFloat() < (float)num3 / (float)num2;
+					flag7 = Main.rand.Next(num2) < num3;
 				}
 				if (flag5)
 				{
@@ -1413,7 +1413,7 @@ public static class Wiring
 				num65 = num60 / num65;
 				num63 *= num65;
 				num64 *= num65;
-				Projectile.NewProjectile(GetProjectileSource(num53, num54), vector.X, vector.Y, num63, num64, type2, damage2, knockBack2, CurrentUser);
+				Projectile.NewProjectile(GetProjectileSource(num53, num54), vector.X, vector.Y, num63, num64, type2, damage2, knockBack2, Main.myPlayer);
 			}
 			return;
 		}
@@ -2669,42 +2669,41 @@ public static class Wiring
 			return;
 		}
 		Rectangle value = Utils.CenteredRectangle(new Vector2(num * 16 + 16, num2 * 16 + 16), HopperGrabHitboxSize);
+		Chest chest = Main.chest[num3];
 		bool flag = false;
 		for (int i = 0; i < 400; i++)
 		{
 			WorldItem worldItem = Main.item[i];
 			int type = worldItem.type;
-			if (worldItem.active && worldItem.playerIndexTheItemIsReservedFor == Main.myPlayer && !ItemID.Sets.ItemsThatShouldNotBeInInventory[worldItem.type] && worldItem.Hitbox.Intersects(value) && TryToPutItemInChest(i, num3))
+			if (worldItem.active && worldItem.playerIndexTheItemIsReservedFor == Main.myPlayer && !ItemID.Sets.ItemsThatShouldNotBeInInventory[worldItem.type] && worldItem.Hitbox.Intersects(value) && TryToPutItemInChest(worldItem, chest))
 			{
 				flag = true;
-				NetMessage.SendData(21, -1, -1, null, i);
+				worldItem.SyncItem();
 				Chest.VisualizeChestTransfer(worldItem.Center, value.Center.ToVector2(), type, Chest.ItemTransferVisualizationSettings.Hopper);
 			}
 		}
 		if (flag)
 		{
-			ItemSorting.SortInventory(Main.chest[num3], withSync: false, withFeedback: false);
+			ItemSorting.SortInventory(chest, withSync: false, withFeedback: false);
 		}
 	}
 
-	private static bool TryToPutItemInChest(int itemIndex, int chestIndex)
+	private static bool TryToPutItemInChest(WorldItem worldItem, Chest chest)
 	{
-		WorldItem worldItem = Main.item[itemIndex];
 		if (worldItem.IsACoin)
 		{
-			return TryMoveCoinsInChest(itemIndex, chestIndex);
+			return TryMoveCoinsInChest(worldItem, chest);
 		}
-		Chest chest = Main.chest[chestIndex];
 		for (int i = 0; i < chest.maxItems; i++)
 		{
-			if (TryAddingToStack(itemIndex, chestIndex, i) && worldItem.IsAir)
+			if (TryAddingToStack(worldItem, ref chest.item[i]))
 			{
 				return true;
 			}
 		}
 		for (int j = 0; j < chest.maxItems; j++)
 		{
-			if (TryAddingToEmptySlot(itemIndex, chestIndex, j) && worldItem.IsAir)
+			if (TryAddingToEmptySlot(worldItem, ref chest.item[j]))
 			{
 				return true;
 			}
@@ -2712,15 +2711,14 @@ public static class Wiring
 		return false;
 	}
 
-	private static bool TryMoveCoinsInChest(int itemIndex, int chestIndex)
+	private static bool TryMoveCoinsInChest(WorldItem worldItem, Chest chest)
 	{
-		WorldItem worldItem = Main.item[itemIndex];
 		if (!worldItem.IsACoin)
 		{
 			return false;
 		}
-		int maxItems = Main.chest[chestIndex].maxItems;
-		Item[] item = Main.chest[chestIndex].item;
+		int maxItems = chest.maxItems;
+		Item[] item = chest.item;
 		bool overFlowing;
 		long num = Utils.CoinsCount(out overFlowing, item);
 		int num2 = worldItem.value / 5;
@@ -2772,48 +2770,45 @@ public static class Wiring
 		return true;
 	}
 
-	private static bool TryAddingToEmptySlot(int itemIndex, int chestIndex, int chestItemIndex)
+	private static bool TryAddingToEmptySlot(WorldItem worldItem, ref Item chestItem)
 	{
-		WorldItem worldItem = Main.item[itemIndex];
-		if (Main.chest[chestIndex].item[chestItemIndex].stack != 0)
+		if (chestItem.stack != 0)
 		{
 			return false;
 		}
 		SoundEngine.PlaySound(7);
-		Main.chest[chestIndex].item[chestItemIndex] = worldItem.inner.Clone();
-		Main.chest[chestIndex].item[chestItemIndex].newAndShiny = false;
+		chestItem = worldItem.inner.Clone();
+		chestItem.newAndShiny = false;
 		worldItem.TurnToAir();
 		return true;
 	}
 
-	private static bool TryAddingToStack(int itemIndex, int chestIndex, int chestItemIndex)
+	private static bool TryAddingToStack(WorldItem worldItem, ref Item chestItem)
 	{
-		WorldItem worldItem = Main.item[itemIndex];
-		Item item = Main.chest[chestIndex].item[chestItemIndex];
-		if (item.stack >= item.maxStack || !Item.CanStack(worldItem.inner, item))
+		if (chestItem.stack >= chestItem.maxStack || !Item.CanStack(worldItem.inner, chestItem))
 		{
 			return false;
 		}
 		int num = worldItem.stack;
-		if (worldItem.stack + item.stack > item.maxStack)
+		if (worldItem.stack + chestItem.stack > chestItem.maxStack)
 		{
-			num = item.maxStack - item.stack;
+			num = chestItem.maxStack - chestItem.stack;
 		}
 		worldItem.stack -= num;
-		item.stack += num;
+		chestItem.stack += num;
 		if (worldItem.stack <= 0)
 		{
 			worldItem.TurnToAir();
 			return true;
 		}
-		if (item.type == 0)
+		if (chestItem.type == 0)
 		{
-			Main.chest[chestIndex].item[chestItemIndex] = worldItem.inner.Clone();
-			Main.chest[chestIndex].item[chestItemIndex].newAndShiny = false;
+			chestItem = worldItem.inner.Clone();
+			chestItem.newAndShiny = false;
 			worldItem.TurnToAir();
 			return true;
 		}
-		return false;
+		return num > 0;
 	}
 
 	public static void ToggleHolidayLight(int i, int j, Tile tileCache, bool? forcedStateWhereTrueIsOn)
@@ -3345,7 +3340,7 @@ public static class Wiring
 		Item.DropCache(reason, dropPoint, Vector2.Zero, 849);
 	}
 
-	private static bool? MassWireOperationStep(Player user, Point pt, WiresUI.Settings.MultiToolMode mode, ref int wiresLeftToConsume, ref int actuatorsLeftToConstume)
+	private static bool? MassWireOperationStep(Player user, Point pt, WiresUI.Settings.MultiToolMode mode, ref int wiresLeftToConsume, ref int actuatorsLeftToConsume)
 	{
 		if (!WorldGen.InWorld(pt.X, pt.Y, 1))
 		{
@@ -3404,11 +3399,11 @@ public static class Wiring
 			}
 			if ((mode & WiresUI.Settings.MultiToolMode.Actuator) != 0 && !tile.actuator())
 			{
-				if (actuatorsLeftToConstume <= 0)
+				if (actuatorsLeftToConsume <= 0)
 				{
 					return false;
 				}
-				actuatorsLeftToConstume--;
+				actuatorsLeftToConsume--;
 				WorldGen.PlaceActuator(pt.X, pt.Y);
 				NetMessage.SendData(17, -1, -1, null, 8, pt.X, pt.Y);
 			}

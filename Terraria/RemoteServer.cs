@@ -10,7 +10,7 @@ public class RemoteServer
 
 	public bool IsActive;
 
-	public int State;
+	public volatile int State;
 
 	public int TimeOutTimer;
 
@@ -31,8 +31,6 @@ public class RemoteServer
 	public bool HideStatusTextPercent => ServerSpecialFlags[0];
 
 	public bool StatusTextHasShadows => ServerSpecialFlags[1];
-
-	public bool ServerWantsToRunCheckBytesInClientLoopThread => ServerSpecialFlags[2];
 
 	public bool ReadBufferFull => NetMessage.buffer[256].RemainingReadBufferLength < ReadBuffer.Length;
 
@@ -65,7 +63,7 @@ public class RemoteServer
 				{
 					PendingTermination = true;
 				}
-				else if (Main.ignoreErrors)
+				else
 				{
 					try
 					{
@@ -73,11 +71,11 @@ public class RemoteServer
 					}
 					catch
 					{
+						if (!Main.ignoreErrors)
+						{
+							throw;
+						}
 					}
-				}
-				else
-				{
-					NetMessage.ReceiveBytes(ReadBuffer, streamLength);
 				}
 			}
 			IsReading = false;

@@ -65,7 +65,7 @@ public static class Utils
 
 		public bool allowSolidTopFloor;
 
-		public Func<Tile, int, int, bool> specializedConditions;
+		public Func<int, int, Tile, Tile, Tile, bool> specializedConditions;
 	}
 
 	public struct ChaseResults
@@ -141,6 +141,38 @@ public static class Utils
 	public static double UnclampedSmoothStep(double min, double max, double x)
 	{
 		return (x - min) / (max - min);
+	}
+
+	public static void CycleControlControl_ClickHold(ref ButtonControlMode mode)
+	{
+		switch (mode)
+		{
+		case ButtonControlMode.Hold:
+			mode = ButtonControlMode.Click;
+			break;
+		default:
+			mode = ButtonControlMode.Hold;
+			break;
+		}
+	}
+
+	public static void CycleControlControl_OffOnClickHold(ref ButtonControlMode mode)
+	{
+		switch (mode)
+		{
+		default:
+			mode = ButtonControlMode.Hold;
+			break;
+		case ButtonControlMode.Hold:
+			mode = ButtonControlMode.Click;
+			break;
+		case ButtonControlMode.Click:
+			mode = ButtonControlMode.OnAlways;
+			break;
+		case ButtonControlMode.OnAlways:
+			mode = ButtonControlMode.OffAlways;
+			break;
+		}
 	}
 
 	public static Dictionary<string, string> ParseArguements(string[] args)
@@ -410,7 +442,7 @@ public static class Utils
 		DrawNotificationIcon(spritebatch, hitbox.BottomRight() + new Vector2(-7f, -6f), rotationMultiplier, worldSpace);
 	}
 
-	public static void DrawNotificationIcon(SpriteBatch spritebatch, Vector2 position, float rotationMultiplier = 1f, bool worldSpace = false)
+	public static void DrawNotificationIcon(SpriteBatch spritebatch, Vector2 position, float rotationMultiplier = 1f, bool worldSpace = false, float scaleMultiplier = 1f)
 	{
 		Texture2D value = Main.Assets.Request<Texture2D>("Images/UI/UI_quickicon1", (AssetRequestMode)1).Value;
 		float amount = (float)Math.Sin((float)Math.PI * 2f * (Main.GlobalTimeWrappedHourly % 1f / 1f)) * 0.5f + 0.5f;
@@ -429,7 +461,7 @@ public static class Utils
 		Color value2 = color;
 		value2.A /= 2;
 		Color color2 = Color.Lerp(color, value2, amount);
-		spritebatch.Draw(value, position, null, color2, num, new Vector2(value.Width / 2, value.Height - 4), 1f, SpriteEffects.None, 0f);
+		spritebatch.Draw(value, position, null, color2, num, new Vector2(value.Width / 2, value.Height - 4), scaleMultiplier, SpriteEffects.None, 0f);
 	}
 
 	public static Vector2 ConstrainedToPointInRectangle(Rectangle bounds, Vector2 centerTestPosition)
@@ -489,7 +521,7 @@ public static class Utils
 		int num2 = (int)settings.teleporteeSize.Y;
 		Vector2 teleporteeVelocity = settings.teleporteeVelocity;
 		float teleporteeGravityDirection = settings.teleporteeGravityDirection;
-		Rectangle rectangle = new Rectangle(teleportStartX, teleportStartY, teleportRangeX, teleportRangeY);
+		Rectangle rectangle = new Rectangle(teleportStartX, teleportStartY, teleportRangeX + 1, teleportRangeY + 1);
 		int num3 = 0;
 		int num4 = 0;
 		int num5 = 0;
@@ -498,9 +530,9 @@ public static class Utils
 		while (!canSpawn && num3 < settings.attemptsBeforeGivingUp)
 		{
 			num3++;
-			num4 = teleportStartX + Main.rand.Next(teleportRangeX);
-			num5 = teleportStartY + Main.rand.Next(teleportRangeY);
-			int num7 = 5;
+			num4 = Main.rand.Next(rectangle.Left, rectangle.Right + 1);
+			num5 = Main.rand.Next(rectangle.Top, rectangle.Bottom + 1);
+			int num7 = 45;
 			num4 = (int)MathHelper.Clamp(num4, num7, Main.maxTilesX - num7);
 			num5 = (int)MathHelper.Clamp(num5, num7, Main.maxTilesY - num7);
 			if (settings.strictRange && !rectangle.Contains(new Point(num4, num5)))
@@ -517,7 +549,7 @@ public static class Utils
 				Main.tile[num4, num5] = new Tile();
 			}
 			Tile tile = Main.tile[num4, num5];
-			if ((settings.avoidWalls && tile.wall > 0) || (tile.wall == 87 && (double)num5 > Main.worldSurface && !NPC.downedPlantBoss) || (Main.wallDungeon[tile.wall] && (double)num5 > Main.worldSurface && !NPC.downedBoss3) || !CheckForGoodTeleportationSpot_CheckNoInvalidTiles(num4, num5, settings))
+			if ((settings.avoidWalls && tile.wall > 0) || (tile.wall == 87 && !NPC.downedPlantBoss) || (Main.wallDungeon[tile.wall] && (double)num5 > Main.worldSurface && !NPC.downedBoss3) || !CheckForGoodTeleportationSpot_CheckNoInvalidTiles(num4, num5, settings))
 			{
 				continue;
 			}
@@ -562,14 +594,14 @@ public static class Utils
 			int num12 = (int)(vector.Y + (float)num2) / 16;
 			Tile tileSafely = Framing.GetTileSafely(num9, num10);
 			Tile tileSafely2 = Framing.GetTileSafely(num11, num12);
-			if ((settings.specializedConditions != null && !settings.specializedConditions(tileSafely2, num11, num12)) || (settings.avoidAnyLiquid && tileSafely2.liquid > 0))
+			Tile tileSafely3 = Framing.GetTileSafely(num11 - 1, num12);
+			Tile tileSafely4 = Framing.GetTileSafely(num11 + 1, num12);
+			if ((settings.specializedConditions != null && !settings.specializedConditions(num11, num12, tileSafely2, tileSafely3, tileSafely4)) || (settings.avoidAnyLiquid && tileSafely2.liquid > 0))
 			{
 				continue;
 			}
 			if (settings.mostlySolidFloor)
 			{
-				Tile tileSafely3 = Framing.GetTileSafely(num11 - 1, num12);
-				Tile tileSafely4 = Framing.GetTileSafely(num11 + 1, num12);
 				bool flag2 = false;
 				bool flag3 = false;
 				if (settings.allowSolidTopFloor)
@@ -841,7 +873,7 @@ public static class Utils
 
 	public static string[] WordwrapString(string text, DynamicSpriteFont font, int maxWidth, int maxLines, out int lineAmount)
 	{
-		string[] array = font.CreateWrappedText(text, (float)maxWidth, Language.ActiveCulture.CultureInfo).Split(new char[1] { '\n' });
+		string[] array = font.CreateWrappedText(text, (float)maxWidth, Language.ActiveCulture.CultureInfo).Split('\n');
 		lineAmount = Math.Min(array.Length, maxLines);
 		string[] array2 = new string[maxLines];
 		Array.Copy(array, array2, lineAmount);
@@ -852,12 +884,12 @@ public static class Utils
 	{
 		string[] array = new string[maxLines];
 		int num = 0;
-		List<string> list = new List<string>(text.Split(new char[1] { '\n' }));
-		List<string> list2 = new List<string>(list[0].Split(new char[1] { ' ' }));
+		List<string> list = new List<string>(text.Split('\n'));
+		List<string> list2 = new List<string>(list[0].Split(' '));
 		for (int i = 1; i < list.Count && i < maxLines; i++)
 		{
 			list2.Add("\n");
-			list2.AddRange(list[i].Split(new char[1] { ' ' }));
+			list2.AddRange(list[i].Split(' '));
 		}
 		bool flag = true;
 		while (list2.Count > 0)
@@ -2523,6 +2555,7 @@ public static class Utils
 		List<Point> t2 = _floodFillQueue2;
 		BitSet2D floodFillBitset = _floodFillBitset;
 		floodFillBitset.Reset(point, (int)Math.Ceiling(maxDist) + 1);
+		t2.Clear();
 		t2.Add(point);
 		floodFillBitset.Add(point);
 		while (t2.Count > 0)
@@ -2631,7 +2664,7 @@ public static class Utils
 		}
 	}
 
-	public static Vector2 DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
+	public static Vector2 DrawBorderStringMeasured(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
 	{
 		if (maxCharactersDisplayed != -1)
 		{
@@ -2641,6 +2674,17 @@ public static class Utils
 		Vector2 vector = value.MeasureString(text);
 		ChatManager.DrawColorCodedStringWithShadow(sb, value, text, pos, color, 0f, new Vector2(anchorx, anchory) * vector, new Vector2(scale), -1f, 1.5f);
 		return vector * scale;
+	}
+
+	public static void DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
+	{
+		if (maxCharactersDisplayed != -1)
+		{
+			text = TrimUserString(text, maxCharactersDisplayed);
+		}
+		DynamicSpriteFont value = FontAssets.MouseText.Value;
+		Vector2 origin = ((anchorx == 0f && anchory == 0f) ? Vector2.Zero : (new Vector2(anchorx, anchory) * value.MeasureString(text)));
+		ChatManager.DrawColorCodedStringWithShadow(sb, value, text, pos, color, 0f, origin, new Vector2(scale), -1f, 1.5f);
 	}
 
 	public static Vector2 DrawBorderStringBig(SpriteBatch spriteBatch, string text, Vector2 pos, Color color, float scale = 1f, float anchorx = 0f, float anchory = 0f, int maxCharactersDisplayed = -1)
@@ -2770,6 +2814,14 @@ public static class Utils
 			while (num2 + 1f < num)
 			{
 				framing(1, vector, num - num2, frame, out distanceCovered, out frame, out origin, out color);
+				if (distanceCovered < 1f)
+				{
+					distanceCovered = 1f;
+				}
+				if (scale.Y < 0.05f)
+				{
+					scale.Y = 0.05f;
+				}
 				if (num - num2 < (float)frame.Height)
 				{
 					distanceCovered *= (num - num2) / (float)frame.Height;
@@ -2809,9 +2861,13 @@ public static class Utils
 		float num = Vector2.Distance(start, end);
 		float rotation = (end - start).ToRotation();
 		int num2 = Math.Min(5, (int)num);
+		if (colorStart == colorEnd)
+		{
+			num2 = 1;
+		}
 		for (int i = 0; i < num2; i++)
 		{
-			spriteBatch.Draw(TextureAssets.BlackTile.Value, Vector2.Lerp(start, end, (float)i / (float)num2) - Main.screenPosition, null, Color.Lerp(colorStart, colorEnd, ((float)i + 0.5f) / (float)num2), rotation, Vector2.Zero, new Vector2(num / (float)num2 / 16f, width / 16f), SpriteEffects.None, 0f);
+			spriteBatch.Draw(TextureAssets.BlackTile.Value, Vector2.Lerp(start, end, (float)i / (float)num2) - Main.screenPosition, null, Color.Lerp(colorStart, colorEnd, ((float)i + 0.5f) / (float)num2), rotation, new Vector2(0f, 8f), new Vector2(num / (float)num2 / 16f, width / 16f), SpriteEffects.None, 0f);
 		}
 	}
 

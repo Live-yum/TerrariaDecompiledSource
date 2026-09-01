@@ -2,7 +2,7 @@ using System;
 
 namespace Terraria;
 
-public struct GetItemSettings
+public struct GetItemSettings(bool LongText = false, bool NoText = false, bool CanGoIntoVoidVault = false, bool NoSound = false, Action<Item> StepAfterHandlingSlotNormally = null, bool NoCoinMerge = false)
 {
 	public static GetItemSettings GiftRecieved = new GetItemSettings(LongText: true);
 
@@ -24,27 +24,17 @@ public struct GetItemSettings
 
 	public static GetItemSettings ReturnItemShowAsNewNoCoinMerge = new GetItemSettings(LongText: false, NoText: true, CanGoIntoVoidVault: false, NoSound: false, MakeNewAndShiny, NoCoinMerge: true);
 
-	public readonly bool LongText;
+	public readonly bool LongText = LongText;
 
-	public readonly bool NoText;
+	public readonly bool NoText = NoText;
 
-	public readonly bool CanGoIntoVoidVault;
+	public readonly bool CanGoIntoVoidVault = CanGoIntoVoidVault;
 
-	public readonly bool NoSound;
+	public readonly bool NoSound = NoSound;
 
-	public readonly bool NoCoinMerge;
+	public readonly bool NoCoinMerge = NoCoinMerge;
 
-	public readonly Action<Item> StepAfterHandlingSlotNormally;
-
-	public GetItemSettings(bool LongText = false, bool NoText = false, bool CanGoIntoVoidVault = false, bool NoSound = false, Action<Item> StepAfterHandlingSlotNormally = null, bool NoCoinMerge = false)
-	{
-		this.LongText = LongText;
-		this.NoText = NoText;
-		this.CanGoIntoVoidVault = CanGoIntoVoidVault;
-		this.NoSound = NoSound;
-		this.StepAfterHandlingSlotNormally = StepAfterHandlingSlotNormally;
-		this.NoCoinMerge = NoCoinMerge;
-	}
+	public readonly Action<Item> StepAfterHandlingSlotNormally = StepAfterHandlingSlotNormally;
 
 	public void HandlePostAction(Item item)
 	{

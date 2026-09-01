@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -22,8 +21,6 @@ public static class Program
 	public static bool IsFna = false;
 
 	public static bool IsMono = Type.GetType("Mono.Runtime") != null;
-
-	public const bool IsDebug = false;
 
 	public static Dictionary<string, string> LaunchParameters = new Dictionary<string, string>();
 
@@ -156,10 +153,6 @@ public static class Program
 
 	private static void InitializeConsoleOutput()
 	{
-		if (Debugger.IsAttached)
-		{
-			return;
-		}
 		try
 		{
 			Console.OutputEncoding = Encoding.UTF8;
@@ -196,6 +189,7 @@ public static class Program
 
 	public static void RunGame()
 	{
+		Main.dedServ = true;
 		LanguageManager.Instance.SetLanguage(GameCulture.DefaultCulture);
 		if (Platform.IsOSX)
 		{

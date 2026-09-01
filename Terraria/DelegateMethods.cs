@@ -301,7 +301,7 @@ public static class DelegateMethods
 					dust.velocity.Y *= 0.75f;
 					dust.fadeIn = 0.2f + Main.rand.NextFloat() * 0.1f;
 					dust.noGravity = Main.rand.Next(3) == 0;
-					dust.noLightEmittence = true;
+					dust.noLightEmittance = true;
 				}
 			}
 		}
@@ -363,7 +363,7 @@ public static class DelegateMethods
 			{
 				Main.dust[num].alpha += 25;
 			}
-			Main.dust[num].noLightEmittence = true;
+			Main.dust[num].noLightEmittance = true;
 			Main.dust[num].noGravity = Main.rand.Next(3) == 0;
 			Main.dust[num].velocity *= (float)Main.rand.Next(15, 51) * 0.01f;
 			Main.dust[num].velocity.X *= (float)Main.rand.Next(25, 101) * 0.01f;

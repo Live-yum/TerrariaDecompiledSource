@@ -1,10 +1,10 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using NATUPNPLib;
 using ReLogic.OS;
 using Terraria.Audio;
 using Terraria.Localization;
@@ -41,7 +41,7 @@ public class Netplay
 
 	public static RemoteServer Connection = new RemoteServer();
 
-	public static IPAddress ServerIP;
+	private static IPAddress _serverIP;
 
 	public static string ServerIPText = "";
 
@@ -59,13 +59,19 @@ public class Netplay
 
 	public static bool SaveOnServerExit = true;
 
-	public static bool Disconnect;
+	public static volatile bool Disconnect;
+
+	public static volatile bool ClientLoopThreadRunning;
 
 	public static bool SpamCheck = false;
 
-	public static bool HasClients;
+	public static bool HasFullyConnectedClients;
 
 	private static Thread _serverThread;
+
+	private static UPnPNAT _upnpnat;
+
+	private static IStaticPortMappingCollection _mappings;
 
 	public static MessageBuffer fullBuffer = new MessageBuffer();
 
@@ -76,6 +82,19 @@ public class Netplay
 	private static UdpClient BroadcastClient = null;
 
 	private static Thread broadcastThread = null;
+
+	public static IPAddress ServerIP
+	{
+		get
+		{
+			return _serverIP;
+		}
+		private set
+		{
+			IsHostAndPlay = false;
+			_serverIP = value;
+		}
+	}
 
 	public static event Action OnDisconnect;
 
@@ -150,10 +169,49 @@ public class Netplay
 
 	private static void OpenPort(int port)
 	{
+		string localIPAddress = GetLocalIPAddress();
+		if (_upnpnat == null)
+		{
+			_upnpnat = (UPnPNAT)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("AE1E00AA-3FD5-403C-8A27-2BBDC30CD0E1")));
+			_mappings = _upnpnat.StaticPortMappingCollection;
+		}
+		if (_mappings == null)
+		{
+			return;
+		}
+		bool flag = false;
+		foreach (IStaticPortMapping mapping in _mappings)
+		{
+			if (mapping.InternalPort == port && mapping.InternalClient == localIPAddress && mapping.Protocol == "TCP")
+			{
+				flag = true;
+			}
+		}
+		if (!flag)
+		{
+			_mappings.Add(port, "TCP", port, localIPAddress, bEnabled: true, "Terraria Server");
+		}
 	}
 
 	private static void ClosePort(int port)
 	{
+		string localIPAddress = GetLocalIPAddress();
+		bool flag = false;
+		if (_mappings == null)
+		{
+			return;
+		}
+		foreach (IStaticPortMapping mapping in _mappings)
+		{
+			if (mapping.InternalPort == port && mapping.InternalClient == localIPAddress && mapping.Protocol == "TCP")
+			{
+				flag = true;
+			}
+		}
+		if (!flag)
+		{
+			_mappings.Remove(port, "TCP");
+		}
 	}
 
 	private static void ServerFullWriteCallBack(object state)
@@ -167,18 +225,12 @@ public class Netplay
 		{
 			Clients[num].Reset();
 			Clients[num].Socket = client;
+			Console.WriteLine(Language.GetTextValue("Net.ClientConnecting", client.GetRemoteAddress()));
+			return;
 		}
-		else
+		lock (fullBuffer)
 		{
-			lock (fullBuffer)
-			{
-				KickClient(client, NetworkText.FromKey("CLI.ServerIsFull"));
-			}
-		}
-		if (FindNextOpenClientSlot() == -1)
-		{
-			StopListening();
-			IsListening = false;
+			KickClient(client, NetworkText.FromKey("CLI.ServerIsFull"));
 		}
 	}
 
@@ -218,15 +270,6 @@ public class Netplay
 			SocialAPI.Network.StartListening(OnConnectionAccepted);
 		}
 		return TcpListener.StartListening(OnConnectionAccepted);
-	}
-
-	private static void StopListening()
-	{
-		if (SocialAPI.Network != null)
-		{
-			SocialAPI.Network.StopListening();
-		}
-		TcpListener.StopListening();
 	}
 
 	public static void StartServer()
@@ -291,7 +334,6 @@ public class Netplay
 		StartBroadCasting();
 		while (!Disconnect)
 		{
-			StartListeningIfNeeded();
 			UpdateConnectedClients();
 			num = (num + 1) % 10;
 			Thread.Sleep((num == 0) ? 1 : 0);
@@ -306,63 +348,35 @@ public class Netplay
 		{
 			if (Clients[i].PendingTermination)
 			{
-				num++;
 				if (Clients[i].PendingTerminationApproved)
 				{
+					if (!Clients[i].Kicked && !Clients[i].IsAnnouncementCompleted)
+					{
+						Console.WriteLine(Language.GetTextValue("Net.ClientLostConnection", Clients[i].Socket.GetRemoteAddress()));
+					}
 					Clients[i].Reset();
 					NetMessage.SyncDisconnectedPlayer(i);
 				}
-				continue;
 			}
-			if (Clients[i].IsConnected())
+			else if (Clients[i].IsConnected())
 			{
 				Clients[i].Update();
-				num++;
-				continue;
-			}
-			if (Clients[i].IsActive)
-			{
-				Clients[i].PendingTermination = true;
-				Clients[i].PendingTerminationApproved = true;
-				continue;
-			}
-			Clients[i].StatusText2 = "";
-			if (i < 255)
-			{
-				bool active = Main.player[i].active;
-				Main.player[i].active = false;
-				if (active)
+				if (Clients[i].State == 10)
 				{
-					Player.Hooks.PlayerDisconnect(i);
+					num++;
 				}
 			}
-		}
-		HasClients = num != 0;
-	}
-
-	private static void StartListeningIfNeeded()
-	{
-		if (IsListening || !Clients.Any((RemoteClient client) => !client.IsConnected()))
-		{
-			return;
-		}
-		try
-		{
-			StartListening();
-			IsListening = true;
-		}
-		catch
-		{
-			if (!Main.ignoreErrors)
+			else if (Clients[i].IsActive)
 			{
-				throw;
+				Clients[i].PendingTermination = true;
 			}
 		}
+		HasFullyConnectedClients = num != 0;
 	}
 
 	private static void UpdateClientInMainThread()
 	{
-		if (Main.netMode == 1 && Connection.IsActive && !Connection.ServerWantsToRunCheckBytesInClientLoopThread)
+		if (Main.netMode == 1 && Connection.IsActive)
 		{
 			NetMessage.CheckBytes();
 		}
@@ -401,23 +415,40 @@ public class Netplay
 	public static void SocialClientLoop(object threadContext)
 	{
 		ISocket socket = (ISocket)threadContext;
-		ClientLoopSetup(socket.GetRemoteAddress());
-		Connection.Socket = socket;
-		InnerClientLoop();
+		try
+		{
+			ClientLoopSetup(socket.GetRemoteAddress());
+			Connection.Socket = socket;
+			InnerClientLoop();
+		}
+		finally
+		{
+			ClientLoopThreadRunning = false;
+		}
 	}
 
 	public static void TcpClientLoop()
 	{
-		ClientLoopSetup(new TcpAddress(ServerIP, ListenPort));
-		Main.menuMode = 14;
-		bool flag = true;
-		while (flag)
+		try
 		{
-			flag = false;
+			ClientLoopSetup(new TcpAddress(ServerIP, ListenPort));
+			TcpConnectLoop();
+			InnerClientLoop();
+		}
+		finally
+		{
+			ClientLoopThreadRunning = false;
+		}
+	}
+
+	private static void TcpConnectLoop()
+	{
+		while (true)
+		{
 			try
 			{
 				Connection.Socket.Connect(new TcpAddress(ServerIP, ListenPort));
-				flag = false;
+				break;
 			}
 			catch
 			{
@@ -427,13 +458,12 @@ public class Netplay
 					Connection.Socket.Close();
 					Connection.Socket = new TcpSocket();
 				}
-				if (!Disconnect && Main.gameMenu)
+				if (Disconnect || !Main.gameMenu)
 				{
-					flag = true;
+					break;
 				}
 			}
 		}
-		InnerClientLoop();
 	}
 
 	private static void ClientLoopSetup(RemoteAddress address)
@@ -454,29 +484,29 @@ public class Netplay
 				Main.player[i] = new Player();
 			}
 		}
-		Main.netMode = 1;
+		Disconnect = false;
+		NetMessage.buffer[256].Reset();
+		Connection = new RemoteServer
+		{
+			ReadBuffer = new byte[1024]
+		};
 		Main.menuMode = 14;
 		if (!Main.autoPass)
 		{
 			Main.statusText = Language.GetTextValue("Net.ConnectingTo", address.GetFriendlyName());
 		}
-		Disconnect = false;
-		Connection = new RemoteServer();
-		Connection.ReadBuffer = new byte[1024];
+		Main.netMode = 1;
+		Main.TrySetPreparationState(Main.WorldPreparationState.AwaitingData);
+		ClientLoopThreadRunning = true;
 	}
 
 	private static void InnerClientLoop()
 	{
 		try
 		{
-			NetMessage.buffer[256].Reset();
 			int num = -1;
 			while (!Disconnect)
 			{
-				if (Connection.IsActive && Connection.ServerWantsToRunCheckBytesInClientLoopThread)
-				{
-					NetMessage.CheckBytes();
-				}
 				if (Connection.IsConnected())
 				{
 					Connection.IsActive = true;
@@ -566,17 +596,16 @@ public class Netplay
 			}
 			if (!Main.gameMenu)
 			{
+				Main.menuMode = 14;
 				Main.gameMenu = true;
 				Main.SwitchNetMode(0);
 				MapHelper.noStatusText = true;
-				Player.SavePlayer(Main.ActivePlayerFileData);
+				Player.SavePlayer(Main.ActivePlayerFileData, skipMapSave: false, canBeSkipped: true);
 				Player.ClearPlayerTempInfo();
 				Main.ActivePlayerFileData.StopPlayTimer();
 				SoundEngine.StopTrackedSounds();
 				MapHelper.noStatusText = false;
-				Main.menuMode = 14;
 			}
-			NetMessage.buffer[256].Reset();
 			if (Main.menuMode == 15 && Main.statusText == Language.GetTextValue("Net.LostConnection"))
 			{
 				Main.menuMode = 14;
@@ -645,10 +674,9 @@ public class Netplay
 
 	public static bool SetRemoteIPOld(string remoteAddress)
 	{
-		IsHostAndPlay = false;
 		try
 		{
-			if (IPAddress.TryParse(remoteAddress, out IPAddress address))
+			if (IPAddress.TryParse(remoteAddress, out var address))
 			{
 				ServerIP = address;
 				ServerIPText = address.ToString();
@@ -675,7 +703,7 @@ public class Netplay
 	{
 		try
 		{
-			if (IPAddress.TryParse(remoteAddress, out IPAddress address))
+			if (IPAddress.TryParse(remoteAddress, out var address))
 			{
 				ServerIP = address;
 				ServerIPText = address.ToString();

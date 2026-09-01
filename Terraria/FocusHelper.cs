@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using ReLogic.OS;
+using Terraria.Testing;
 
 namespace Terraria;
 
@@ -23,11 +24,11 @@ public static class FocusHelper
 
 	public static bool AllowSkyMovement => GameplayActive;
 
-	public static bool AllowTileDrawingToEmitEffects => GameplayActive;
+	public static bool AllowTileDrawingToEmitEffects => !WorldUpdateStepper.DrawnThisUpdate;
 
-	public static bool AllowPlayerToEmitEffects => GameplayActive;
+	public static bool AllowPlayerToEmitEffects => !WorldUpdateStepper.DrawnThisUpdate;
 
-	public static bool AllowWorldItemsToEmitEffects => GameplayActive;
+	public static bool AllowWorldItemsToEmitEffects => !WorldUpdateStepper.DrawnThisUpdate;
 
 	public static bool PauseSkies => !GameplayActive;
 
@@ -35,7 +36,7 @@ public static class FocusHelper
 
 	public static bool PauseLiquidRenderer => !GameplayActive;
 
-	public static bool AllowMiscDustEffects => GameplayActive;
+	public static bool AllowMiscDustEffects => !WorldUpdateStepper.DrawnThisUpdate;
 
 	public static bool PausePlayerBalloonAnimations
 	{
@@ -113,17 +114,13 @@ public static class FocusHelper
 	{
 		get
 		{
-			if (!IsSelectedApplication)
+			if (!AllowInputProcessing)
 			{
 				return Main.AllowUnfocusedInputOnGamepad;
 			}
 			return true;
 		}
 	}
-
-	public static bool AllowUIInputs => IsSelectedApplication;
-
-	public static bool AllowGameplayInputs => IsSelectedApplication;
 
 	public static bool LetStarsFallInMenu => IsSelectedApplication;
 
@@ -135,9 +132,13 @@ public static class FocusHelper
 
 	public static void UpdateFocus(out bool wantsToPause)
 	{
-		wantsToPause = false;
-		bool flag = !Main.SettingPlayWhenUnfocused;
+		if (!AllowInputProcessing)
+		{
+			Main.LocalPlayer.delayUseItem = true;
+		}
 		IsSelectedApplication = Main.instance.IsActive;
+		bool flag = !Main.SettingPlayWhenUnfocused;
+		wantsToPause = !IsSelectedApplication && Main.netMode == 0 && flag;
 		if (Platform.IsWindows)
 		{
 			Form form = Control.FromHandle(Main.instance.Window.Handle) as Form;
@@ -149,13 +150,12 @@ public static class FocusHelper
 				IsSelectedApplication = false;
 			}
 		}
-		if (!IsSelectedApplication && Main.netMode == 0 && flag)
+		if (!IsSelectedApplication)
 		{
 			if (!Platform.IsOSX)
 			{
 				Main.instance.IsMouseVisible = true;
 			}
-			wantsToPause = true;
 			return;
 		}
 		if (!Platform.IsOSX)

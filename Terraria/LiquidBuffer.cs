@@ -1,6 +1,6 @@
 namespace Terraria;
 
-public class LiquidBuffer
+public struct LiquidBuffer
 {
 	public static int numLiquidBuffer;
 
@@ -10,7 +10,7 @@ public class LiquidBuffer
 
 	public static void AddBuffer(int x, int y)
 	{
-		if (numLiquidBuffer < 49998 && !Main.tile[x, y].checkingLiquid())
+		if (numLiquidBuffer < Liquid.maxLiquidBuffer - 2 && !Main.tile[x, y].checkingLiquid())
 		{
 			Main.tile[x, y].checkingLiquid(checkingLiquid: true);
 			Main.liquidBuffer[numLiquidBuffer].x = x;

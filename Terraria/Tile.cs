@@ -102,34 +102,6 @@ public class Tile
 		frameY = 0;
 	}
 
-	public Tile(Tile copy)
-	{
-		if (copy == null)
-		{
-			type = 0;
-			wall = 0;
-			liquid = 0;
-			sTileHeader = 0;
-			bTileHeader = 0;
-			bTileHeader2 = 0;
-			bTileHeader3 = 0;
-			frameX = 0;
-			frameY = 0;
-		}
-		else
-		{
-			type = copy.type;
-			wall = copy.wall;
-			liquid = copy.liquid;
-			sTileHeader = copy.sTileHeader;
-			bTileHeader = copy.bTileHeader;
-			bTileHeader2 = copy.bTileHeader2;
-			bTileHeader3 = copy.bTileHeader3;
-			frameX = copy.frameX;
-			frameY = copy.frameY;
-		}
-	}
-
 	public object Clone()
 	{
 		return MemberwiseClone();

@@ -7,7 +7,6 @@ using Terraria.Chat;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.GameContent.Events;
-using Terraria.GameContent.Items;
 using Terraria.GameContent.Tile_Entities;
 using Terraria.ID;
 using Terraria.Localization;
@@ -19,26 +18,17 @@ namespace Terraria;
 
 public class NetMessage
 {
-	public struct NetSoundInfo
+	public struct NetSoundInfo(Vector2 position, ushort soundIndex, int style = -1, float volume = -1f, float pitchOffset = -1f)
 	{
-		public Vector2 position;
+		public Vector2 position = position;
 
-		public ushort soundIndex;
+		public ushort soundIndex = soundIndex;
 
-		public int style;
+		public int style = style;
 
-		public float volume;
+		public float volume = volume;
 
-		public float pitchOffset;
-
-		public NetSoundInfo(Vector2 position, ushort soundIndex, int style = -1, float volume = -1f, float pitchOffset = -1f)
-		{
-			this.position = position;
-			this.soundIndex = soundIndex;
-			this.style = style;
-			this.volume = volume;
-			this.pitchOffset = pitchOffset;
-		}
+		public float pitchOffset = pitchOffset;
 
 		public void WriteSelfTo(BinaryWriter writer)
 		{
@@ -94,13 +84,27 @@ public class NetMessage
 		{
 			return;
 		}
-		if (msgType == 21 && (Main.item[number].shimmerTime > 0f || Main.item[number].shimmered))
+		switch (msgType)
 		{
-			msgType = 145;
+		case 21:
+		{
+			WorldItem worldItem = Main.item[number];
+			if (worldItem.instanced)
+			{
+				return;
+			}
+			if (worldItem.IsAir)
+			{
+				msgType = 151;
+			}
+			break;
 		}
-		if (msgType == 21 && Main.item[number].type == 0)
-		{
-			msgType = 151;
+		case 28:
+			if (Main.netMode == 2 && Main.npc[number].spawnNeedsSyncing)
+			{
+				SendData(23, -1, -1, null, number);
+			}
+			break;
 		}
 		int num = 256;
 		if (text == null)
@@ -126,10 +130,11 @@ public class NetMessage
 			switch (msgType)
 			{
 			case 1:
-				writer.Write("Terraria" + 318);
+				writer.Write("Terraria" + 326);
 				break;
 			case 2:
 				text.Serialize(writer);
+				Netplay.Clients[num].Kicked = true;
 				if (Main.dedServ)
 				{
 					Console.WriteLine(Language.GetTextValue("CLI.ClientWasBooted", Netplay.Clients[num].Socket.GetRemoteAddress().ToString(), text));
@@ -141,54 +146,54 @@ public class NetMessage
 				break;
 			case 4:
 			{
-				Player player5 = Main.player[number];
+				Player player6 = Main.player[number];
 				writer.Write((byte)number);
-				writer.Write((byte)player5.skinVariant);
-				writer.Write((byte)player5.voiceVariant);
-				writer.Write(player5.voicePitchOffset);
-				writer.Write((byte)player5.hair);
-				writer.Write(player5.name);
-				writer.Write(player5.hairDye);
-				WriteAccessoryVisibility(writer, player5.hideVisibleAccessory);
-				writer.Write(player5.hideMisc);
-				writer.WriteRGB(player5.hairColor);
-				writer.WriteRGB(player5.skinColor);
-				writer.WriteRGB(player5.eyeColor);
-				writer.WriteRGB(player5.shirtColor);
-				writer.WriteRGB(player5.underShirtColor);
-				writer.WriteRGB(player5.pantsColor);
-				writer.WriteRGB(player5.shoeColor);
-				BitsByte bitsByte20 = (byte)0;
-				if (player5.difficulty == 1)
+				writer.Write((byte)player6.skinVariant);
+				writer.Write((byte)player6.voiceVariant);
+				writer.Write(player6.voicePitchOffset);
+				writer.Write((byte)player6.hair);
+				writer.Write(player6.name);
+				writer.Write(player6.hairDye);
+				WriteAccessoryVisibility(writer, player6.hideVisibleAccessory);
+				writer.Write(player6.hideMisc);
+				writer.WriteRGB(player6.hairColor);
+				writer.WriteRGB(player6.skinColor);
+				writer.WriteRGB(player6.eyeColor);
+				writer.WriteRGB(player6.shirtColor);
+				writer.WriteRGB(player6.underShirtColor);
+				writer.WriteRGB(player6.pantsColor);
+				writer.WriteRGB(player6.shoeColor);
+				BitsByte bitsByte15 = (byte)0;
+				if (player6.difficulty == 1)
 				{
-					bitsByte20[0] = true;
+					bitsByte15[0] = true;
 				}
-				else if (player5.difficulty == 2)
+				else if (player6.difficulty == 2)
 				{
-					bitsByte20[1] = true;
+					bitsByte15[1] = true;
 				}
-				else if (player5.difficulty == 3)
+				else if (player6.difficulty == 3)
 				{
-					bitsByte20[3] = true;
+					bitsByte15[3] = true;
 				}
-				bitsByte20[2] = player5.extraAccessory;
-				writer.Write(bitsByte20);
-				BitsByte bitsByte21 = (byte)0;
-				bitsByte21[0] = player5.UsingBiomeTorches;
-				bitsByte21[1] = player5.happyFunTorchTime;
-				bitsByte21[2] = player5.unlockedBiomeTorches;
-				bitsByte21[3] = player5.unlockedSuperCart;
-				bitsByte21[4] = player5.enabledSuperCart;
-				writer.Write(bitsByte21);
-				BitsByte bitsByte22 = (byte)0;
-				bitsByte22[0] = player5.usedAegisCrystal;
-				bitsByte22[1] = player5.usedAegisFruit;
-				bitsByte22[2] = player5.usedArcaneCrystal;
-				bitsByte22[3] = player5.usedGalaxyPearl;
-				bitsByte22[4] = player5.usedGummyWorm;
-				bitsByte22[5] = player5.usedAmbrosia;
-				bitsByte22[6] = player5.ateArtisanBread;
-				writer.Write(bitsByte22);
+				bitsByte15[2] = player6.extraAccessory;
+				writer.Write(bitsByte15);
+				BitsByte bitsByte16 = (byte)0;
+				bitsByte16[0] = player6.UsingBiomeTorches;
+				bitsByte16[1] = player6.happyFunTorchTime;
+				bitsByte16[2] = player6.unlockedBiomeTorches;
+				bitsByte16[3] = player6.unlockedSuperCart;
+				bitsByte16[4] = player6.enabledSuperCart;
+				writer.Write(bitsByte16);
+				BitsByte bitsByte17 = (byte)0;
+				bitsByte17[0] = player6.usedAegisCrystal;
+				bitsByte17[1] = player6.usedAegisFruit;
+				bitsByte17[2] = player6.usedArcaneCrystal;
+				bitsByte17[3] = player6.usedGalaxyPearl;
+				bitsByte17[4] = player6.usedGummyWorm;
+				bitsByte17[5] = player6.usedAmbrosia;
+				bitsByte17[6] = player6.ateArtisanBread;
+				writer.Write(bitsByte17);
 				break;
 			}
 			case 5:
@@ -200,13 +205,13 @@ public class NetMessage
 				{
 					item5.SetDefaults(0);
 				}
-				int num7 = item5.stack;
+				int num11 = item5.stack;
 				int type = item5.type;
-				if (num7 < 0)
+				if (num11 < 0)
 				{
-					num7 = 0;
+					num11 = 0;
 				}
-				writer.Write((short)num7);
+				writer.Write((short)num11);
 				writer.Write(item5.prefix);
 				writer.Write((short)type);
 				writer.Write(new BitsByte
@@ -219,11 +224,11 @@ public class NetMessage
 			case 7:
 			{
 				writer.Write((int)Main.time);
-				BitsByte bitsByte5 = (byte)0;
-				bitsByte5[0] = Main.dayTime;
-				bitsByte5[1] = Main.bloodMoon;
-				bitsByte5[2] = Main.eclipse;
-				writer.Write(bitsByte5);
+				BitsByte bitsByte3 = (byte)0;
+				bitsByte3[0] = Main.dayTime;
+				bitsByte3[1] = Main.bloodMoon;
+				bitsByte3[2] = Main.eclipse;
+				writer.Write(bitsByte3);
 				writer.Write((byte)Main.moonPhase);
 				writer.Write((short)Main.maxTilesX);
 				writer.Write((short)Main.maxTilesY);
@@ -255,21 +260,21 @@ public class NetMessage
 				writer.Write((byte)Main.hellBackStyle);
 				writer.Write(Main.windSpeedTarget);
 				writer.Write((byte)Main.numClouds);
-				for (int n = 0; n < 3; n++)
+				for (int m = 0; m < 3; m++)
 				{
-					writer.Write(Main.treeX[n]);
+					writer.Write(Main.treeX[m]);
 				}
-				for (int num11 = 0; num11 < 4; num11++)
+				for (int n = 0; n < 4; n++)
 				{
-					writer.Write((byte)Main.treeStyle[num11]);
+					writer.Write((byte)Main.treeStyle[n]);
 				}
-				for (int num12 = 0; num12 < 3; num12++)
+				for (int num6 = 0; num6 < 3; num6++)
 				{
-					writer.Write(Main.caveBackX[num12]);
+					writer.Write(Main.caveBackX[num6]);
 				}
-				for (int num13 = 0; num13 < 4; num13++)
+				for (int num7 = 0; num7 < 4; num7++)
 				{
-					writer.Write((byte)Main.caveBackStyle[num13]);
+					writer.Write((byte)Main.caveBackStyle[num7]);
 				}
 				WorldGen.TreeTops.SyncSend(writer);
 				if (!Main.raining)
@@ -277,107 +282,111 @@ public class NetMessage
 					Main.maxRaining = 0f;
 				}
 				writer.Write(Main.maxRaining);
+				BitsByte bitsByte4 = (byte)0;
+				bitsByte4[0] = WorldGen.shadowOrbSmashed;
+				bitsByte4[1] = NPC.downedBoss1;
+				bitsByte4[2] = NPC.downedBoss2;
+				bitsByte4[3] = NPC.downedBoss3;
+				bitsByte4[4] = Main.hardMode;
+				bitsByte4[5] = NPC.downedClown;
+				bitsByte4[7] = NPC.downedPlantBoss;
+				writer.Write(bitsByte4);
+				BitsByte bitsByte5 = (byte)0;
+				bitsByte5[0] = NPC.downedMechBoss1;
+				bitsByte5[1] = NPC.downedMechBoss2;
+				bitsByte5[2] = NPC.downedMechBoss3;
+				bitsByte5[3] = NPC.downedMechBossAny;
+				bitsByte5[4] = Main.cloudBGActive >= 1f;
+				bitsByte5[5] = WorldGen.crimson;
+				bitsByte5[6] = Main.pumpkinMoon;
+				bitsByte5[7] = Main.snowMoon;
+				writer.Write(bitsByte5);
 				BitsByte bitsByte6 = (byte)0;
-				bitsByte6[0] = WorldGen.shadowOrbSmashed;
-				bitsByte6[1] = NPC.downedBoss1;
-				bitsByte6[2] = NPC.downedBoss2;
-				bitsByte6[3] = NPC.downedBoss3;
-				bitsByte6[4] = Main.hardMode;
-				bitsByte6[5] = NPC.downedClown;
-				bitsByte6[7] = NPC.downedPlantBoss;
+				bitsByte6[1] = Main.fastForwardTimeToDawn;
+				bitsByte6[2] = Main.slimeRain;
+				bitsByte6[3] = NPC.downedSlimeKing;
+				bitsByte6[4] = NPC.downedQueenBee;
+				bitsByte6[5] = NPC.downedFishron;
+				bitsByte6[6] = NPC.downedMartians;
+				bitsByte6[7] = NPC.downedAncientCultist;
 				writer.Write(bitsByte6);
 				BitsByte bitsByte7 = (byte)0;
-				bitsByte7[0] = NPC.downedMechBoss1;
-				bitsByte7[1] = NPC.downedMechBoss2;
-				bitsByte7[2] = NPC.downedMechBoss3;
-				bitsByte7[3] = NPC.downedMechBossAny;
-				bitsByte7[4] = Main.cloudBGActive >= 1f;
-				bitsByte7[5] = WorldGen.crimson;
-				bitsByte7[6] = Main.pumpkinMoon;
-				bitsByte7[7] = Main.snowMoon;
+				bitsByte7[0] = NPC.downedMoonlord;
+				bitsByte7[1] = NPC.downedHalloweenKing;
+				bitsByte7[2] = NPC.downedHalloweenTree;
+				bitsByte7[3] = NPC.downedChristmasIceQueen;
+				bitsByte7[4] = NPC.downedChristmasSantank;
+				bitsByte7[5] = NPC.downedChristmasTree;
+				bitsByte7[6] = NPC.downedGolemBoss;
+				bitsByte7[7] = BirthdayParty.PartyIsUp;
 				writer.Write(bitsByte7);
 				BitsByte bitsByte8 = (byte)0;
-				bitsByte8[1] = Main.fastForwardTimeToDawn;
-				bitsByte8[2] = Main.slimeRain;
-				bitsByte8[3] = NPC.downedSlimeKing;
-				bitsByte8[4] = NPC.downedQueenBee;
-				bitsByte8[5] = NPC.downedFishron;
-				bitsByte8[6] = NPC.downedMartians;
-				bitsByte8[7] = NPC.downedAncientCultist;
+				bitsByte8[0] = NPC.downedPirates;
+				bitsByte8[1] = NPC.downedFrost;
+				bitsByte8[2] = NPC.downedGoblins;
+				bitsByte8[3] = Sandstorm.Happening;
+				bitsByte8[4] = DD2Event.Ongoing;
+				bitsByte8[5] = DD2Event.DownedInvasionT1;
+				bitsByte8[6] = DD2Event.DownedInvasionT2;
+				bitsByte8[7] = DD2Event.DownedInvasionT3;
 				writer.Write(bitsByte8);
 				BitsByte bitsByte9 = (byte)0;
-				bitsByte9[0] = NPC.downedMoonlord;
-				bitsByte9[1] = NPC.downedHalloweenKing;
-				bitsByte9[2] = NPC.downedHalloweenTree;
-				bitsByte9[3] = NPC.downedChristmasIceQueen;
-				bitsByte9[4] = NPC.downedChristmasSantank;
-				bitsByte9[5] = NPC.downedChristmasTree;
-				bitsByte9[6] = NPC.downedGolemBoss;
-				bitsByte9[7] = BirthdayParty.PartyIsUp;
+				bitsByte9[0] = NPC.combatBookWasUsed;
+				bitsByte9[1] = LanternNight.LanternsUp;
+				bitsByte9[2] = NPC.downedTowerSolar;
+				bitsByte9[3] = NPC.downedTowerVortex;
+				bitsByte9[4] = NPC.downedTowerNebula;
+				bitsByte9[5] = NPC.downedTowerStardust;
+				bitsByte9[6] = Main.forceHalloweenForToday;
+				bitsByte9[7] = Main.forceXMasForToday;
 				writer.Write(bitsByte9);
 				BitsByte bitsByte10 = (byte)0;
-				bitsByte10[0] = NPC.downedPirates;
-				bitsByte10[1] = NPC.downedFrost;
-				bitsByte10[2] = NPC.downedGoblins;
-				bitsByte10[3] = Sandstorm.Happening;
-				bitsByte10[4] = DD2Event.Ongoing;
-				bitsByte10[5] = DD2Event.DownedInvasionT1;
-				bitsByte10[6] = DD2Event.DownedInvasionT2;
-				bitsByte10[7] = DD2Event.DownedInvasionT3;
+				bitsByte10[0] = NPC.boughtCat;
+				bitsByte10[1] = NPC.boughtDog;
+				bitsByte10[2] = NPC.boughtBunny;
+				bitsByte10[3] = NPC.freeCake;
+				bitsByte10[4] = Main.drunkWorld;
+				bitsByte10[5] = NPC.downedEmpressOfLight;
+				bitsByte10[6] = NPC.downedQueenSlime;
+				bitsByte10[7] = Main.getGoodWorld;
 				writer.Write(bitsByte10);
 				BitsByte bitsByte11 = (byte)0;
-				bitsByte11[0] = NPC.combatBookWasUsed;
-				bitsByte11[1] = LanternNight.LanternsUp;
-				bitsByte11[2] = NPC.downedTowerSolar;
-				bitsByte11[3] = NPC.downedTowerVortex;
-				bitsByte11[4] = NPC.downedTowerNebula;
-				bitsByte11[5] = NPC.downedTowerStardust;
-				bitsByte11[6] = Main.forceHalloweenForToday;
-				bitsByte11[7] = Main.forceXMasForToday;
+				bitsByte11[0] = Main.tenthAnniversaryWorld;
+				bitsByte11[1] = Main.dontStarveWorld;
+				bitsByte11[2] = NPC.downedDeerclops;
+				bitsByte11[3] = Main.notTheBeesWorld;
+				bitsByte11[4] = Main.remixWorld;
+				bitsByte11[5] = NPC.unlockedSlimeBlueSpawn;
+				bitsByte11[6] = NPC.combatBookVolumeTwoWasUsed;
+				bitsByte11[7] = NPC.peddlersSatchelWasUsed;
 				writer.Write(bitsByte11);
 				BitsByte bitsByte12 = (byte)0;
-				bitsByte12[0] = NPC.boughtCat;
-				bitsByte12[1] = NPC.boughtDog;
-				bitsByte12[2] = NPC.boughtBunny;
-				bitsByte12[3] = NPC.freeCake;
-				bitsByte12[4] = Main.drunkWorld;
-				bitsByte12[5] = NPC.downedEmpressOfLight;
-				bitsByte12[6] = NPC.downedQueenSlime;
-				bitsByte12[7] = Main.getGoodWorld;
+				bitsByte12[0] = NPC.unlockedSlimeGreenSpawn;
+				bitsByte12[1] = NPC.unlockedSlimeOldSpawn;
+				bitsByte12[2] = NPC.unlockedSlimePurpleSpawn;
+				bitsByte12[3] = NPC.unlockedSlimeRainbowSpawn;
+				bitsByte12[4] = NPC.unlockedSlimeRedSpawn;
+				bitsByte12[5] = NPC.unlockedSlimeYellowSpawn;
+				bitsByte12[6] = NPC.unlockedSlimeCopperSpawn;
+				bitsByte12[7] = Main.fastForwardTimeToDusk;
 				writer.Write(bitsByte12);
 				BitsByte bitsByte13 = (byte)0;
-				bitsByte13[0] = Main.tenthAnniversaryWorld;
-				bitsByte13[1] = Main.dontStarveWorld;
-				bitsByte13[2] = NPC.downedDeerclops;
-				bitsByte13[3] = Main.notTheBeesWorld;
-				bitsByte13[4] = Main.remixWorld;
-				bitsByte13[5] = NPC.unlockedSlimeBlueSpawn;
-				bitsByte13[6] = NPC.combatBookVolumeTwoWasUsed;
-				bitsByte13[7] = NPC.peddlersSatchelWasUsed;
+				bitsByte13[0] = Main.noTrapsWorld;
+				bitsByte13[1] = Main.zenithWorld;
+				bitsByte13[2] = NPC.unlockedTruffleSpawn;
+				bitsByte13[3] = Main.vampireSeed;
+				bitsByte13[4] = Main.infectedSeed;
+				bitsByte13[5] = Main.teamBasedSpawnsSeed;
+				bitsByte13[6] = Main.skyblockWorld;
+				bitsByte13[7] = Main.dualDungeonsSeed;
 				writer.Write(bitsByte13);
 				BitsByte bitsByte14 = (byte)0;
-				bitsByte14[0] = NPC.unlockedSlimeGreenSpawn;
-				bitsByte14[1] = NPC.unlockedSlimeOldSpawn;
-				bitsByte14[2] = NPC.unlockedSlimePurpleSpawn;
-				bitsByte14[3] = NPC.unlockedSlimeRainbowSpawn;
-				bitsByte14[4] = NPC.unlockedSlimeRedSpawn;
-				bitsByte14[5] = NPC.unlockedSlimeYellowSpawn;
-				bitsByte14[6] = NPC.unlockedSlimeCopperSpawn;
-				bitsByte14[7] = Main.fastForwardTimeToDusk;
+				bitsByte14[0] = WorldGen.Skyblock.lowTiles;
+				bitsByte14[1] = Main.forceHalloweenForever;
+				bitsByte14[2] = Main.forceXMasForever;
+				bitsByte14[3] = Main.moreLightningSeed;
+				bitsByte14[4] = Main.noLightningSeed;
 				writer.Write(bitsByte14);
-				BitsByte bitsByte15 = (byte)0;
-				bitsByte15[0] = Main.noTrapsWorld;
-				bitsByte15[1] = Main.zenithWorld;
-				bitsByte15[2] = NPC.unlockedTruffleSpawn;
-				bitsByte15[3] = Main.vampireSeed;
-				bitsByte15[4] = Main.infectedSeed;
-				bitsByte15[5] = Main.teamBasedSpawnsSeed;
-				bitsByte15[6] = Main.skyblockWorld;
-				bitsByte15[7] = Main.dualDungeonsSeed;
-				writer.Write(bitsByte15);
-				BitsByte bitsByte16 = (byte)0;
-				bitsByte16[0] = WorldGen.Skyblock.lowTiles;
-				writer.Write(bitsByte16);
 				writer.Write((byte)Main.sundialCooldown);
 				writer.Write((byte)Main.moondialCooldown);
 				writer.Write((short)WorldGen.SavedOreTiers.Copper);
@@ -398,6 +407,8 @@ public class NetMessage
 				}
 				writer.Write(Sandstorm.IntendedSeverity);
 				ExtraSpawnPointManager.Write(writer, networking: true);
+				writer.Write((short)Main.dungeonX);
+				writer.Write((short)Main.dungeonY);
 				break;
 			}
 			case 8:
@@ -409,8 +420,8 @@ public class NetMessage
 			{
 				writer.Write(number);
 				text.Serialize(writer);
-				BitsByte bitsByte30 = (byte)number2;
-				writer.Write(bitsByte30);
+				BitsByte bitsByte31 = (byte)number2;
+				writer.Write(bitsByte31);
 				break;
 			}
 			case 10:
@@ -424,81 +435,83 @@ public class NetMessage
 				break;
 			case 12:
 			{
-				Player player7 = Main.player[number];
+				Player player2 = Main.player[number];
 				writer.Write((byte)number);
-				writer.Write((short)player7.SpawnX);
-				writer.Write((short)player7.SpawnY);
-				writer.Write(player7.respawnTimer);
-				writer.Write((short)player7.numberOfDeathsPVE);
-				writer.Write((short)player7.numberOfDeathsPVP);
-				writer.Write((byte)player7.team);
+				writer.Write((short)player2.SpawnX);
+				writer.Write((short)player2.SpawnY);
+				writer.Write(player2.respawnTimer);
+				writer.Write((short)player2.numberOfDeathsPVE);
+				writer.Write((short)player2.numberOfDeathsPVP);
+				writer.Write((byte)player2.team);
 				writer.Write((byte)number2);
 				break;
 			}
 			case 13:
 			{
-				Player player6 = Main.player[number];
+				Player player7 = Main.player[number];
 				writer.Write((byte)number);
+				BitsByte bitsByte21 = (byte)0;
+				bitsByte21[0] = player7.controlUp;
+				bitsByte21[1] = player7.controlDown;
+				bitsByte21[2] = player7.controlLeft;
+				bitsByte21[3] = player7.controlRight;
+				bitsByte21[4] = player7.controlJump;
+				bitsByte21[5] = player7.controlUseItem;
+				bitsByte21[6] = player7.direction == 1;
+				bitsByte21[7] = player7.controlDash;
+				writer.Write(bitsByte21);
+				BitsByte bitsByte22 = (byte)0;
+				bitsByte22[0] = player7.pulley;
+				bitsByte22[1] = player7.pulley && player7.pulleyDir == 2;
+				bitsByte22[2] = player7.velocity != Vector2.Zero;
+				bitsByte22[3] = player7.vortexStealthActive;
+				bitsByte22[4] = player7.gravDir == 1f;
+				bitsByte22[5] = player7.shieldRaised;
+				bitsByte22[6] = player7.ghost;
+				bitsByte22[7] = player7.mount.Active;
+				writer.Write(bitsByte22);
 				BitsByte bitsByte23 = (byte)0;
-				bitsByte23[0] = player6.controlUp;
-				bitsByte23[1] = player6.controlDown;
-				bitsByte23[2] = player6.controlLeft;
-				bitsByte23[3] = player6.controlRight;
-				bitsByte23[4] = player6.controlJump;
-				bitsByte23[5] = player6.controlUseItem;
-				bitsByte23[6] = player6.direction == 1;
+				bitsByte23[0] = player7.tryKeepingHoveringUp;
+				bitsByte23[1] = player7.IsVoidVaultEnabled;
+				bitsByte23[2] = player7.sitting.isSitting;
+				bitsByte23[3] = player7.downedDD2EventAnyDifficulty;
+				bitsByte23[4] = player7.petting.isPetting;
+				bitsByte23[5] = player7.petting.isPetSmall;
+				bitsByte23[6] = player7.PotionOfReturnOriginalUsePosition.HasValue;
+				bitsByte23[7] = player7.tryKeepingHoveringDown;
 				writer.Write(bitsByte23);
 				BitsByte bitsByte24 = (byte)0;
-				bitsByte24[0] = player6.pulley;
-				bitsByte24[1] = player6.pulley && player6.pulleyDir == 2;
-				bitsByte24[2] = player6.velocity != Vector2.Zero;
-				bitsByte24[3] = player6.vortexStealthActive;
-				bitsByte24[4] = player6.gravDir == 1f;
-				bitsByte24[5] = player6.shieldRaised;
-				bitsByte24[6] = player6.ghost;
-				bitsByte24[7] = player6.mount.Active;
+				bitsByte24[0] = player7.sleeping.isSleeping;
+				bitsByte24[1] = player7.autoReuseAllWeapons;
+				bitsByte24[2] = player7.controlDownHold;
+				bitsByte24[3] = player7.isOperatingAnotherEntity;
+				bitsByte24[4] = player7.controlUseTile;
+				bitsByte24[5] = player7.netCameraTarget.HasValue;
+				bitsByte24[6] = player7.lastItemUseAttemptSuccess;
+				bitsByte24[7] = player7.accSnappingStoneLightUp;
 				writer.Write(bitsByte24);
-				BitsByte bitsByte25 = (byte)0;
-				bitsByte25[0] = player6.tryKeepingHoveringUp;
-				bitsByte25[1] = player6.IsVoidVaultEnabled;
-				bitsByte25[2] = player6.sitting.isSitting;
-				bitsByte25[3] = player6.downedDD2EventAnyDifficulty;
-				bitsByte25[4] = player6.petting.isPetting;
-				bitsByte25[5] = player6.petting.isPetSmall;
-				bitsByte25[6] = player6.PotionOfReturnOriginalUsePosition.HasValue;
-				bitsByte25[7] = player6.tryKeepingHoveringDown;
-				writer.Write(bitsByte25);
-				BitsByte bitsByte26 = (byte)0;
-				bitsByte26[0] = player6.sleeping.isSleeping;
-				bitsByte26[1] = player6.autoReuseAllWeapons;
-				bitsByte26[2] = player6.controlDownHold;
-				bitsByte26[3] = player6.isOperatingAnotherEntity;
-				bitsByte26[4] = player6.controlUseTile;
-				bitsByte26[5] = player6.netCameraTarget.HasValue;
-				bitsByte26[6] = player6.lastItemUseAttemptSuccess;
-				writer.Write(bitsByte26);
-				writer.Write((byte)player6.selectedItem);
-				writer.WriteVector2(player6.position);
-				if (bitsByte24[2])
+				writer.Write((byte)player7.selectedItem);
+				writer.WriteVector2(player7.position);
+				if (bitsByte22[2])
 				{
-					writer.WriteVector2(player6.velocity);
+					writer.WriteVector2(player7.velocity);
 				}
-				if (bitsByte24[7])
+				if (bitsByte22[7])
 				{
-					writer.Write((ushort)player6.mount.Type);
+					writer.Write((ushort)player7.mount.Type);
 				}
-				if (bitsByte25[6])
+				if (bitsByte23[6])
 				{
-					writer.WriteVector2(player6.PotionOfReturnOriginalUsePosition.Value);
-					writer.WriteVector2(player6.PotionOfReturnHomePosition.Value);
+					writer.WriteVector2(player7.PotionOfReturnOriginalUsePosition.Value);
+					writer.WriteVector2(player7.PotionOfReturnHomePosition.Value);
 				}
-				if (bitsByte26[5])
+				if (bitsByte24[5])
 				{
-					writer.WriteVector2(player6.netCameraTarget.Value);
+					writer.WriteVector2(player7.netCameraTarget.Value);
 				}
-				if (player6 == Main.LocalPlayer)
+				if (player7 == Main.LocalPlayer)
 				{
-					player6.lastSyncedNetCameraTarget = player6.netCameraTarget;
+					player7.OnControlsSynced(Main.clientPlayer);
 				}
 				break;
 			}
@@ -532,84 +545,84 @@ public class NetMessage
 				break;
 			case 20:
 			{
-				int num14 = number;
-				int num15 = (int)number2;
-				int num16 = (int)number3;
-				if (num16 < 0)
+				int num12 = number;
+				int num13 = (int)number2;
+				int num14 = (int)number3;
+				if (num14 < 0)
 				{
-					num16 = 0;
+					num14 = 0;
 				}
-				int num17 = (int)number4;
-				if (num17 < 0)
+				int num15 = (int)number4;
+				if (num15 < 0)
 				{
-					num17 = 0;
+					num15 = 0;
 				}
-				if (num14 < num16)
+				if (num12 < num14)
 				{
-					num14 = num16;
+					num12 = num14;
 				}
-				if (num14 >= Main.maxTilesX + num16)
+				if (num12 >= Main.maxTilesX + num14)
 				{
-					num14 = Main.maxTilesX - num16 - 1;
+					num12 = Main.maxTilesX - num14 - 1;
 				}
-				if (num15 < num17)
+				if (num13 < num15)
 				{
-					num15 = num17;
+					num13 = num15;
 				}
-				if (num15 >= Main.maxTilesY + num17)
+				if (num13 >= Main.maxTilesY + num15)
 				{
-					num15 = Main.maxTilesY - num17 - 1;
+					num13 = Main.maxTilesY - num15 - 1;
 				}
-				writer.Write((short)num14);
-				writer.Write((short)num15);
-				writer.Write((byte)num16);
-				writer.Write((byte)num17);
+				writer.Write((short)num12);
+				writer.Write((short)num13);
+				writer.Write((byte)num14);
+				writer.Write((byte)num15);
 				writer.Write((byte)number5);
-				for (int num18 = num14; num18 < num14 + num16; num18++)
+				for (int num16 = num12; num16 < num12 + num14; num16++)
 				{
-					for (int num19 = num15; num19 < num15 + num17; num19++)
+					for (int num17 = num13; num17 < num13 + num15; num17++)
 					{
-						BitsByte bitsByte17 = (byte)0;
 						BitsByte bitsByte18 = (byte)0;
 						BitsByte bitsByte19 = (byte)0;
+						BitsByte bitsByte20 = (byte)0;
+						byte b2 = 0;
 						byte b3 = 0;
-						byte b4 = 0;
-						Tile tile2 = Main.tile[num18, num19];
-						bitsByte17[0] = tile2.active();
-						bitsByte17[2] = tile2.wall > 0;
-						bitsByte17[3] = tile2.liquid > 0 && Main.netMode == 2;
-						bitsByte17[4] = tile2.wire();
-						bitsByte17[5] = tile2.halfBrick();
-						bitsByte17[6] = tile2.actuator();
-						bitsByte17[7] = tile2.inActive();
-						bitsByte18[0] = tile2.wire2();
-						bitsByte18[1] = tile2.wire3();
+						Tile tile2 = Main.tile[num16, num17];
+						bitsByte18[0] = tile2.active();
+						bitsByte18[2] = tile2.wall > 0;
+						bitsByte18[3] = tile2.liquid > 0 && Main.netMode == 2;
+						bitsByte18[4] = tile2.wire();
+						bitsByte18[5] = tile2.halfBrick();
+						bitsByte18[6] = tile2.actuator();
+						bitsByte18[7] = tile2.inActive();
+						bitsByte19[0] = tile2.wire2();
+						bitsByte19[1] = tile2.wire3();
 						if (tile2.active() && tile2.color() > 0)
 						{
-							bitsByte18[2] = true;
-							b3 = tile2.color();
+							bitsByte19[2] = true;
+							b2 = tile2.color();
 						}
 						if (tile2.wall > 0 && tile2.wallColor() > 0)
 						{
-							bitsByte18[3] = true;
-							b4 = tile2.wallColor();
+							bitsByte19[3] = true;
+							b3 = tile2.wallColor();
 						}
-						bitsByte18 = (byte)((byte)bitsByte18 + (byte)(tile2.slope() << 4));
-						bitsByte18[7] = tile2.wire4();
-						bitsByte19[0] = tile2.fullbrightBlock();
-						bitsByte19[1] = tile2.fullbrightWall();
-						bitsByte19[2] = tile2.invisibleBlock();
-						bitsByte19[3] = tile2.invisibleWall();
-						writer.Write(bitsByte17);
+						bitsByte19 = (byte)((byte)bitsByte19 + (byte)(tile2.slope() << 4));
+						bitsByte19[7] = tile2.wire4();
+						bitsByte20[0] = tile2.fullbrightBlock();
+						bitsByte20[1] = tile2.fullbrightWall();
+						bitsByte20[2] = tile2.invisibleBlock();
+						bitsByte20[3] = tile2.invisibleWall();
 						writer.Write(bitsByte18);
 						writer.Write(bitsByte19);
+						writer.Write(bitsByte20);
+						if (b2 > 0)
+						{
+							writer.Write(b2);
+						}
 						if (b3 > 0)
 						{
 							writer.Write(b3);
-						}
-						if (b4 > 0)
-						{
-							writer.Write(b4);
 						}
 						if (tile2.active())
 						{
@@ -635,31 +648,26 @@ public class NetMessage
 			}
 			case 21:
 			case 90:
-			case 145:
-			case 148:
 			{
-				WorldItem worldItem3 = Main.item[number];
-				Item inner = worldItem3.inner;
+				WorldItem worldItem4 = Main.item[number];
+				BitsByte bitsByte30 = (byte)number2;
+				bitsByte30[2] = worldItem4.shimmered || worldItem4.shimmerTime > 0f;
+				bitsByte30[3] = worldItem4.enemyGrabDelayTime > 0;
 				writer.Write((short)number);
-				writer.WriteVector2(worldItem3.position);
-				writer.WriteVector2(worldItem3.velocity);
-				writer.Write((short)inner.stack);
-				writer.Write(inner.prefix);
-				writer.Write((byte)number2);
-				short value3 = 0;
-				if (worldItem3.active && worldItem3.stack > 0)
+				writer.WriteVector2(worldItem4.position);
+				writer.WriteVector2(worldItem4.velocity);
+				writer.Write((short)worldItem4.stack);
+				writer.Write(worldItem4.prefix);
+				writer.Write(bitsByte30);
+				writer.Write((short)((!worldItem4.IsAir) ? worldItem4.type : 0));
+				if (bitsByte30[2])
 				{
-					value3 = (short)worldItem3.type;
+					writer.Write(worldItem4.shimmered);
+					writer.Write(worldItem4.shimmerTime);
 				}
-				writer.Write(value3);
-				if (msgType == 145)
+				if (bitsByte30[3])
 				{
-					writer.Write(worldItem3.shimmered);
-					writer.Write(worldItem3.shimmerTime);
-				}
-				if (msgType == 148)
-				{
-					writer.Write((byte)MathHelper.Clamp(worldItem3.timeLeftInWhichTheItemCannotBeTakenByEnemies, 0f, 255f));
+					writer.Write((byte)MathHelper.Clamp(worldItem4.enemyGrabDelayTime, 0f, 255f));
 				}
 				break;
 			}
@@ -669,87 +677,91 @@ public class NetMessage
 				break;
 			case 22:
 			{
-				WorldItem worldItem2 = Main.item[number];
+				WorldItem worldItem3 = Main.item[number];
 				writer.Write((short)number);
-				writer.Write((byte)worldItem2.playerIndexTheItemIsReservedFor);
-				writer.WriteVector2(worldItem2.position);
+				writer.Write((byte)worldItem3.playerIndexTheItemIsReservedFor);
+				writer.Write7BitEncodedInt((int)number2);
+				writer.Write((byte)worldItem3.grabDelayPlayer);
+				writer.Write7BitEncodedInt(worldItem3.grabDelayTime);
+				writer.WriteVector2(worldItem3.position);
 				break;
 			}
 			case 23:
 			{
-				NPC nPC2 = Main.npc[number];
-				writer.Write((short)number);
-				writer.WriteVector2(nPC2.position);
-				writer.WriteVector2(nPC2.velocity);
-				writer.Write((ushort)nPC2.target);
-				int num4 = nPC2.life;
-				if (!nPC2.active)
+				NPC nPC3 = Main.npc[number];
+				writer.Write((byte)number);
+				writer.Write(nPC3.generation);
+				writer.WriteVector2(nPC3.position + nPC3.Size * NPCID.Sets.SyncAnchor[nPC3.type]);
+				writer.WriteVector2(nPC3.velocity);
+				writer.Write((ushort)nPC3.target);
+				int num19 = nPC3.life;
+				if (!nPC3.active)
 				{
-					num4 = 0;
+					num19 = 0;
 				}
-				short value2 = (short)nPC2.netID;
+				short value4 = (short)nPC3.netID;
 				bool[] array = new bool[4];
-				BitsByte bitsByte = (byte)0;
-				bitsByte[0] = nPC2.direction > 0;
-				bitsByte[1] = nPC2.directionY > 0;
-				bitsByte[2] = (array[0] = nPC2.ai[0] != 0f);
-				bitsByte[3] = (array[1] = nPC2.ai[1] != 0f);
-				bitsByte[4] = (array[2] = nPC2.ai[2] != 0f);
-				bitsByte[5] = (array[3] = nPC2.ai[3] != 0f);
-				bitsByte[6] = nPC2.spriteDirection > 0;
-				bitsByte[7] = num4 == nPC2.lifeMax;
-				writer.Write(bitsByte);
-				BitsByte bitsByte2 = (byte)0;
-				bitsByte2[0] = nPC2.statsAreScaledForThisManyPlayers > 1;
-				bitsByte2[1] = nPC2.SpawnedFromStatue;
-				bitsByte2[2] = nPC2.difficulty != 1f;
-				bitsByte2[3] = nPC2.spawnNeedsSyncing;
-				bitsByte2[4] = nPC2.spawnNeedsSyncing && nPC2.shimmerTransparency > 0f;
-				writer.Write(bitsByte2);
-				for (int l = 0; l < NPC.maxAI; l++)
+				BitsByte bitsByte28 = (byte)0;
+				bitsByte28[0] = nPC3.direction > 0;
+				bitsByte28[1] = nPC3.directionY > 0;
+				bitsByte28[2] = (array[0] = nPC3.ai[0] != 0f);
+				bitsByte28[3] = (array[1] = nPC3.ai[1] != 0f);
+				bitsByte28[4] = (array[2] = nPC3.ai[2] != 0f);
+				bitsByte28[5] = (array[3] = nPC3.ai[3] != 0f);
+				bitsByte28[6] = nPC3.spriteDirection > 0;
+				bitsByte28[7] = num19 == nPC3.lifeMax;
+				writer.Write(bitsByte28);
+				BitsByte bitsByte29 = (byte)0;
+				bitsByte29[0] = nPC3.statsAreScaledForThisManyPlayers > 1;
+				bitsByte29[1] = nPC3.SpawnedFromStatue;
+				bitsByte29[2] = nPC3.difficulty != 1f;
+				bitsByte29[3] = nPC3.spawnNeedsSyncing;
+				bitsByte29[4] = nPC3.spawnNeedsSyncing && nPC3.shimmerTransparency > 0f;
+				writer.Write(bitsByte29);
+				for (int num20 = 0; num20 < NPC.maxAI; num20++)
 				{
-					if (array[l])
+					if (array[num20])
 					{
-						writer.Write(nPC2.ai[l]);
+						writer.Write(nPC3.ai[num20]);
 					}
 				}
-				writer.Write(value2);
-				if (bitsByte2[0])
+				writer.Write(value4);
+				if (bitsByte29[0])
 				{
-					writer.Write((byte)nPC2.statsAreScaledForThisManyPlayers);
+					writer.Write((byte)nPC3.statsAreScaledForThisManyPlayers);
 				}
-				if (bitsByte2[2])
+				if (bitsByte29[2])
 				{
-					writer.Write(nPC2.difficulty);
+					writer.Write(nPC3.difficulty);
 				}
-				if (!bitsByte[7])
+				if (!bitsByte28[7])
 				{
-					byte b2 = 1;
-					if (nPC2.lifeMax > 32767)
+					byte b5 = 1;
+					if (nPC3.lifeMax > 32767)
 					{
-						b2 = 4;
+						b5 = 4;
 					}
-					else if (nPC2.lifeMax > 127)
+					else if (nPC3.lifeMax > 127)
 					{
-						b2 = 2;
+						b5 = 2;
 					}
-					writer.Write(b2);
-					switch (b2)
+					writer.Write(b5);
+					switch (b5)
 					{
 					case 2:
-						writer.Write((short)num4);
+						writer.Write((short)num19);
 						break;
 					case 4:
-						writer.Write(num4);
+						writer.Write(num19);
 						break;
 					default:
-						writer.Write((sbyte)num4);
+						writer.Write((sbyte)num19);
 						break;
 					}
 				}
-				if (nPC2.type >= 0 && nPC2.type < NPCID.Count && Main.npcCatchable[nPC2.type])
+				if (nPC3.type >= 0 && nPC3.type < NPCID.Count && Main.npcCatchable[nPC3.type])
 				{
-					writer.Write((byte)nPC2.releaseOwner);
+					writer.Write((byte)nPC3.releaseOwner);
 				}
 				break;
 			}
@@ -767,89 +779,82 @@ public class NetMessage
 			case 27:
 			{
 				Projectile projectile = Main.projectile[number];
-				writer.Write((short)projectile.identity);
+				Invariant.Assert(projectile.owner == projectile.key.Spawner, "SyncProjectile owner ({0}) must match spawner ({1}). Type: {2}", projectile.owner, projectile.key.Spawner, projectile.type);
+				writer.Write(projectile.key);
 				writer.WriteVector2(projectile.position);
 				writer.WriteVector2(projectile.velocity);
-				writer.Write((byte)projectile.owner);
 				writer.Write((short)projectile.type);
-				BitsByte bitsByte27 = (byte)0;
-				BitsByte bitsByte28 = (byte)0;
-				bitsByte27[0] = projectile.ai[0] != 0f;
-				bitsByte27[1] = projectile.ai[1] != 0f;
-				bitsByte28[0] = projectile.ai[2] != 0f;
+				BitsByte bitsByte25 = (byte)0;
+				BitsByte bitsByte26 = (byte)0;
+				bitsByte25[0] = projectile.ai[0] != 0f;
+				bitsByte25[1] = projectile.ai[1] != 0f;
+				bitsByte26[0] = projectile.ai[2] != 0f;
 				if (projectile.bannerIdToRespondTo != 0)
 				{
-					bitsByte27[3] = true;
+					bitsByte25[3] = true;
 				}
 				if (projectile.damage != 0)
 				{
-					bitsByte27[4] = true;
+					bitsByte25[4] = true;
 				}
 				if (projectile.knockBack != 0f)
 				{
-					bitsByte27[5] = true;
-				}
-				if (projectile.type > 0 && projectile.type < ProjectileID.Count && ProjectileID.Sets.NeedsUUID[projectile.type])
-				{
-					bitsByte27[7] = true;
+					bitsByte25[5] = true;
 				}
 				if (projectile.originalDamage != 0)
 				{
-					bitsByte27[6] = true;
+					bitsByte25[6] = true;
 				}
-				if ((byte)bitsByte28 != 0)
+				if ((byte)bitsByte26 != 0)
 				{
-					bitsByte27[2] = true;
+					bitsByte25[2] = true;
 				}
-				writer.Write(bitsByte27);
-				if (bitsByte27[2])
+				writer.Write(bitsByte25);
+				if (bitsByte25[2])
 				{
-					writer.Write(bitsByte28);
+					writer.Write(bitsByte26);
 				}
-				if (bitsByte27[0])
+				if (bitsByte25[0])
 				{
 					writer.Write(projectile.ai[0]);
 				}
-				if (bitsByte27[1])
+				if (bitsByte25[1])
 				{
 					writer.Write(projectile.ai[1]);
 				}
-				if (bitsByte27[3])
+				if (bitsByte25[3])
 				{
 					writer.Write((ushort)projectile.bannerIdToRespondTo);
 				}
-				if (bitsByte27[4])
+				if (bitsByte25[4])
 				{
 					writer.Write((short)projectile.damage);
 				}
-				if (bitsByte27[5])
+				if (bitsByte25[5])
 				{
 					writer.Write(projectile.knockBack);
 				}
-				if (bitsByte27[6])
+				if (bitsByte25[6])
 				{
 					writer.Write((short)projectile.originalDamage);
 				}
-				if (bitsByte27[7])
-				{
-					writer.Write((short)projectile.projUUID);
-				}
-				if (bitsByte28[0])
+				if (bitsByte26[0])
 				{
 					writer.Write(projectile.ai[2]);
 				}
 				break;
 			}
 			case 28:
-				writer.Write((short)number);
+				writer.Write((byte)number);
+				writer.Write(Main.npc[number].generation);
 				writer.Write((short)number2);
 				writer.Write(number3);
 				writer.Write((byte)(number4 + 1f));
 				writer.Write((byte)number5);
 				break;
 			case 29:
-				writer.Write((short)number);
-				writer.Write((byte)number2);
+				writer.Write(number);
+				writer.WriteVector2(new Vector2(number2, number3));
 				break;
 			case 30:
 				writer.Write((byte)number);
@@ -864,14 +869,14 @@ public class NetMessage
 				Item item6 = Main.chest[number].item[(byte)number2];
 				writer.Write((short)number);
 				writer.Write((byte)number2);
-				short value4 = (short)item6.type;
+				short value2 = (short)item6.type;
 				if (item6.Name == null)
 				{
-					value4 = 0;
+					value2 = 0;
 				}
 				writer.Write((short)item6.stack);
 				writer.Write(item6.prefix);
-				writer.Write(value4);
+				writer.Write(value2);
 				break;
 			}
 			case 33:
@@ -930,14 +935,14 @@ public class NetMessage
 				break;
 			case 36:
 			{
-				Player player4 = Main.player[number];
+				Player player5 = Main.player[number];
 				writer.Write((byte)number);
-				writer.Write(player4.zone1);
-				writer.Write(player4.zone2);
-				writer.Write(player4.zone3);
-				writer.Write(player4.zone4);
-				writer.Write(player4.zone5);
-				writer.Write((byte)player4.townNPCs);
+				writer.Write(player5.zone1);
+				writer.Write(player5.zone2);
+				writer.Write(player5.zone3);
+				writer.Write(player5.zone4);
+				writer.Write(player5.zone5);
+				writer.Write((byte)player5.townNPCs);
 				break;
 			}
 			case 38:
@@ -945,6 +950,7 @@ public class NetMessage
 				break;
 			case 39:
 				writer.Write((short)number);
+				writer.Write(number2 != 0f);
 				break;
 			case 40:
 				writer.Write((byte)number);
@@ -993,12 +999,12 @@ public class NetMessage
 			case 50:
 			{
 				writer.Write((byte)number);
-				Player player2 = Main.player[number];
-				for (int m = 0; m < Player.maxBuffs; m++)
+				Player player3 = Main.player[number];
+				for (int l = 0; l < Player.maxBuffs; l++)
 				{
-					if (player2.buffType[m] > 0)
+					if (player3.buffType[l] > 0)
 					{
-						writer.Write((ushort)player2.buffType[m]);
+						writer.Write((ushort)player3.buffType[l]);
 					}
 				}
 				writer.Write((ushort)0);
@@ -1085,17 +1091,17 @@ public class NetMessage
 				break;
 			case 65:
 			{
-				BitsByte bitsByte29 = (byte)0;
-				bitsByte29[0] = (number & 1) == 1;
-				bitsByte29[1] = (number & 2) == 2;
-				bitsByte29[2] = number6 == 1;
-				bitsByte29[3] = number7 != 0;
-				writer.Write(bitsByte29);
+				BitsByte bitsByte27 = (byte)0;
+				bitsByte27[0] = (number & 1) == 1;
+				bitsByte27[1] = (number & 2) == 2;
+				bitsByte27[2] = number6 == 1;
+				bitsByte27[3] = number7 != 0;
+				writer.Write(bitsByte27);
 				writer.Write((short)number2);
 				writer.Write(number3);
 				writer.Write(number4);
 				writer.Write((byte)number5);
-				if (bitsByte29[3])
+				if (bitsByte27[3])
 				{
 					writer.Write(number7);
 				}
@@ -1122,7 +1128,6 @@ public class NetMessage
 				break;
 			case 70:
 				writer.Write((short)number);
-				writer.Write((byte)number2);
 				break;
 			case 71:
 				writer.Write(number);
@@ -1132,9 +1137,9 @@ public class NetMessage
 				break;
 			case 72:
 			{
-				for (int num20 = 0; num20 < Main.TravelShopMaxSlots; num20++)
+				for (int num18 = 0; num18 < Main.TravelShopMaxSlots; num18++)
 				{
-					writer.Write((short)Main.travelShop[num20]);
+					writer.Write((short)Main.travelShop[num18]);
 				}
 				break;
 			}
@@ -1144,8 +1149,8 @@ public class NetMessage
 			case 74:
 			{
 				writer.Write((byte)Main.anglerQuest);
-				bool value5 = Main.anglerWhoFinishedToday.Contains(text.ToString());
-				writer.Write(value5);
+				bool value3 = Main.anglerWhoFinishedToday.Contains(text.ToString());
+				writer.Write(value3);
 				break;
 			}
 			case 76:
@@ -1198,9 +1203,9 @@ public class NetMessage
 				break;
 			case 84:
 			{
-				byte b5 = (byte)number;
-				float stealth = Main.player[b5].stealth;
-				writer.Write(b5);
+				byte b4 = (byte)number;
+				float stealth = Main.player[b4].stealth;
+				writer.Write(b4);
 				writer.Write(stealth);
 				break;
 			}
@@ -1234,65 +1239,65 @@ public class NetMessage
 				break;
 			case 88:
 			{
-				BitsByte bitsByte3 = (byte)number2;
-				BitsByte bitsByte4 = (byte)number3;
+				BitsByte bitsByte = (byte)number2;
+				BitsByte bitsByte2 = (byte)number3;
 				writer.Write((short)number);
-				writer.Write(bitsByte3);
-				WorldItem worldItem4 = Main.item[number];
-				if (bitsByte3[0])
+				writer.Write(bitsByte);
+				Item inner = Main.item[number].inner;
+				if (bitsByte[0])
 				{
-					writer.Write(worldItem4.color.PackedValue);
+					writer.Write(inner.color.PackedValue);
 				}
-				if (bitsByte3[1])
+				if (bitsByte[1])
 				{
-					writer.Write((ushort)worldItem4.damage);
+					writer.Write((ushort)inner.damage);
 				}
-				if (bitsByte3[2])
+				if (bitsByte[2])
 				{
-					writer.Write(worldItem4.knockBack);
+					writer.Write(inner.knockBack);
 				}
-				if (bitsByte3[3])
+				if (bitsByte[3])
 				{
-					writer.Write((ushort)worldItem4.useAnimation);
+					writer.Write((ushort)inner.useAnimation);
 				}
-				if (bitsByte3[4])
+				if (bitsByte[4])
 				{
-					writer.Write((ushort)worldItem4.useTime);
+					writer.Write((ushort)inner.useTime);
 				}
-				if (bitsByte3[5])
+				if (bitsByte[5])
 				{
-					writer.Write((short)worldItem4.shoot);
+					writer.Write((short)inner.shoot);
 				}
-				if (bitsByte3[6])
+				if (bitsByte[6])
 				{
-					writer.Write(worldItem4.shootSpeed);
+					writer.Write(inner.shootSpeed);
 				}
-				if (bitsByte3[7])
+				if (bitsByte[7])
 				{
-					writer.Write(bitsByte4);
-					if (bitsByte4[0])
+					writer.Write(bitsByte2);
+					if (bitsByte2[0])
 					{
-						writer.Write((ushort)worldItem4.width);
+						writer.Write((ushort)inner.width);
 					}
-					if (bitsByte4[1])
+					if (bitsByte2[1])
 					{
-						writer.Write((ushort)worldItem4.height);
+						writer.Write((ushort)inner.height);
 					}
-					if (bitsByte4[2])
+					if (bitsByte2[2])
 					{
-						writer.Write(worldItem4.scale);
+						writer.Write(inner.scale);
 					}
-					if (bitsByte4[3])
+					if (bitsByte2[3])
 					{
-						writer.Write((short)worldItem4.ammo);
+						writer.Write((short)inner.ammo);
 					}
-					if (bitsByte4[4])
+					if (bitsByte2[4])
 					{
-						writer.Write((short)worldItem4.useAmmo);
+						writer.Write((short)inner.useAmmo);
 					}
-					if (bitsByte4[5])
+					if (bitsByte2[5])
 					{
-						writer.Write(worldItem4.notAmmo);
+						writer.Write(inner.notAmmo);
 					}
 				}
 				break;
@@ -1327,6 +1332,12 @@ public class NetMessage
 				writer.Write(number3);
 				writer.Write(number4);
 				break;
+			case 94:
+				writer.Write(text.ToString());
+				writer.Write(number);
+				writer.Write(number2);
+				writer.Write(number3);
+				break;
 			case 95:
 				writer.Write((ushort)number);
 				writer.Write((byte)number2);
@@ -1334,11 +1345,11 @@ public class NetMessage
 			case 96:
 			{
 				writer.Write((byte)number);
-				Player player3 = Main.player[number];
+				Player player4 = Main.player[number];
 				writer.Write((short)number4);
 				writer.Write(number2);
 				writer.Write(number3);
-				writer.WriteVector2(player3.velocity);
+				writer.WriteVector2(player4.velocity);
 				break;
 			}
 			case 97:
@@ -1358,11 +1369,11 @@ public class NetMessage
 			case 100:
 			{
 				writer.Write((ushort)number);
-				NPC nPC3 = Main.npc[number];
+				NPC nPC2 = Main.npc[number];
 				writer.Write((short)number4);
 				writer.Write(number2);
 				writer.Write(number3);
-				writer.WriteVector2(nPC3.velocity);
+				writer.WriteVector2(nPC2.velocity);
 				break;
 			}
 			case 101:
@@ -1454,10 +1465,10 @@ public class NetMessage
 				break;
 			case 121:
 			{
-				int num6 = (int)number3;
+				int num5 = (int)number3;
 				writer.Write((byte)number);
 				writer.Write((int)number2);
-				writer.Write((byte)num6);
+				writer.Write((byte)num5);
 				writer.Write((byte)number4);
 				if (TileEntity.TryGet<TEDisplayDoll>((int)number2, out var result2))
 				{
@@ -1485,15 +1496,15 @@ public class NetMessage
 			}
 			case 124:
 			{
-				int num5 = (int)number3;
+				int num4 = (int)number3;
 				bool flag = number4 == 1f;
 				if (flag)
 				{
-					num5 += 2;
+					num4 += 2;
 				}
 				writer.Write((byte)number);
 				writer.Write((int)number2);
-				writer.Write((byte)num5);
+				writer.Write((byte)num4);
 				if (TileEntity.TryGet<TEHatRack>((int)number2, out var result))
 				{
 					result.WriteItem((int)number3, writer, flag);
@@ -1616,10 +1627,10 @@ public class NetMessage
 				switch (number)
 				{
 				case 0:
-					writer.WriteVector2(new Vector2((int)number2, (int)number3));
+					writer.WriteVector2(new Vector2(number2, number3));
 					break;
 				case 1:
-					writer.WriteVector2(new Vector2((int)number2, (int)number3));
+					writer.WriteVector2(new Vector2(number2, number3));
 					writer.Write((int)number4);
 					break;
 				}
@@ -1668,9 +1679,9 @@ public class NetMessage
 				break;
 			case 160:
 			{
-				WorldItem worldItem = Main.item[number];
+				WorldItem worldItem2 = Main.item[number];
 				writer.Write((short)number);
-				writer.WriteVector2(worldItem.position);
+				writer.WriteVector2(worldItem2.position);
 				break;
 			}
 			case 161:
@@ -2272,12 +2283,9 @@ public class NetMessage
 					num--;
 					if (Main.tile[j, i] == null)
 					{
-						Main.tile[j, i] = new Tile(tile);
+						Main.tile[j, i] = new Tile();
 					}
-					else
-					{
-						Main.tile[j, i].CopyFrom(tile);
-					}
+					Main.tile[j, i].CopyFrom(tile);
 					continue;
 				}
 				byte b2;
@@ -2386,7 +2394,7 @@ public class NetMessage
 						tile.wire3(wire3: true);
 					}
 					b5 = (byte)((b & 0x70) >> 4);
-					if (b5 != 0 && Main.tileSolid[tile.type])
+					if (b5 != 0 && (Main.tileSolid[tile.type] || TileID.Sets.NonSolidSaveSlopes[tile.type]))
 					{
 						if (b5 == 1)
 						{
@@ -2478,7 +2486,7 @@ public class NetMessage
 		num3 = reader.ReadInt16();
 		for (int m = 0; m < num3; m++)
 		{
-			TileEntity.Add(TileEntity.Read(reader, 318));
+			TileEntity.Add(TileEntity.Read(reader, 326));
 		}
 		MapUpdateQueue.Add(new Rectangle(xStart, yStart, width, height));
 		Main.sectionManager.SetTilesLoaded(xStart, yStart, xStart + width - 1, yStart + height - 1);
@@ -2515,6 +2523,11 @@ public class NetMessage
 		if (Main.dedServ && Netplay.Clients[bufferIndex].PendingTermination)
 		{
 			Netplay.Clients[bufferIndex].PendingTerminationApproved = true;
+			if (Main.player[bufferIndex].active)
+			{
+				Main.player[bufferIndex].active = false;
+				Player.Hooks.PlayerDisconnect(bufferIndex);
+			}
 			return;
 		}
 		if (!Main.dedServ && !Netplay.Connection.IsConnected() && !Netplay.Connection.IsReading && !buffer[bufferIndex].checkBytes)
@@ -2543,7 +2556,15 @@ public class NetMessage
 					if (num2 >= num3)
 					{
 						long position = buffer[bufferIndex].reader.BaseStream.Position;
-						buffer[bufferIndex].GetData(num + 2, num3 - 2, out var _);
+						int messageType = 0;
+						try
+						{
+							buffer[bufferIndex].GetData(num + 2, num3 - 2, out messageType);
+						}
+						catch (Exception exception)
+						{
+							LogMessageError(bufferIndex, messageType.ToString(), exception);
+						}
 						buffer[bufferIndex].reader.BaseStream.Position = position + num3;
 						num2 -= num3;
 						num += num3;
@@ -2552,12 +2573,9 @@ public class NetMessage
 					break;
 				}
 			}
-			catch (Exception)
+			catch (Exception exception2)
 			{
-				if (Main.dedServ && num < buffer.Length - 100)
-				{
-					Console.WriteLine(Language.GetTextValue("Error.NetMessageError", buffer[num + 2]));
-				}
+				LogMessageError(bufferIndex, "?", exception2);
 				num2 = 0;
 				num = 0;
 			}
@@ -2570,6 +2588,17 @@ public class NetMessage
 				buffer[bufferIndex].totalData = num2;
 			}
 		}
+	}
+
+	private static void LogMessageError(int bufferIndex, string id, Exception exception)
+	{
+		string text = Language.GetTextValue("Error.NetMessageError", id);
+		if (Main.dedServ)
+		{
+			text += $" @{Netplay.Clients[bufferIndex].Socket.GetRemoteAddress()}({Netplay.Clients[bufferIndex].Name})";
+		}
+		text = text + ". " + exception;
+		Invariant.Assert(condition: false, text);
 	}
 
 	public static void BootPlayer(int plr, NetworkText msg)
@@ -2805,6 +2834,7 @@ public class NetMessage
 
 	public static void SyncDisconnectedPlayer(int plr)
 	{
+		Invariant.Assert(!Main.player[plr].active, "Disconnected player still active");
 		SyncOnePlayer(plr, -1, plr);
 		EnsureLocalPlayerIsPresent();
 	}
@@ -2913,7 +2943,6 @@ public class NetMessage
 			SendData(80, toWho, fromWho, null, plr, Main.player[plr].chest);
 			SendData(142, toWho, fromWho, null, plr);
 			SendData(147, toWho, fromWho, null, plr, Main.player[plr].CurrentLoadoutIndex);
-			TagEffectState.NetModule.SyncStateIfNecessary(Main.player[plr].TagEffectState, toWho, fromWho);
 			for (int i = 0; i < 59; i++)
 			{
 				SendData(5, toWho, fromWho, null, plr, PlayerItemSlotID.Inventory0 + i);
@@ -2953,6 +2982,7 @@ public class NetMessage
 			}
 			return;
 		}
+		Invariant.Assert(num == 0, "State < 10 but player.active");
 		num = 0;
 		SendData(14, -1, plr, null, plr, num);
 		if (Netplay.Clients[plr].IsAnnouncementCompleted)
@@ -2965,7 +2995,6 @@ public class NetMessage
 			}
 			Netplay.Clients[plr].Name = "Anonymous";
 		}
-		Player.Hooks.PlayerDisconnect(plr);
 	}
 
 	private static void SyncOnePlayer_ItemArray(int plr, int toWho, int fromWho, Item[] arr, int slot)

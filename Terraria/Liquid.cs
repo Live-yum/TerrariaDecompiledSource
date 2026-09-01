@@ -5,15 +5,16 @@ using Terraria.GameContent.NetModules;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ObjectData;
+using Terraria.Testing;
 using Terraria.WorldBuilding;
 
 namespace Terraria;
 
-public class Liquid
+public struct Liquid
 {
-	public const int maxLiquidBuffer = 50000;
+	public static readonly int maxLiquidBuffer = 50000;
 
-	public static int maxLiquid = 25000;
+	public static readonly int maxLiquid = 25000;
 
 	public static int skipCount;
 
@@ -1014,7 +1015,7 @@ public class Liquid
 		{
 			if (!panicMode)
 			{
-				if ((double)LiquidBuffer.numLiquidBuffer >= 45000.0)
+				if ((double)LiquidBuffer.numLiquidBuffer >= (double)maxLiquidBuffer * 0.9)
 				{
 					panicCounter++;
 					if (panicCounter > 3600)
@@ -1303,19 +1304,18 @@ public class Liquid
 				{
 					NetMessage.SendTileSquare(-1, x - 1, y, 3);
 				}
+				return;
 			}
-			else
-			{
-				int liquidMergeTileType2 = 56;
-				int liquidMergeType2 = 0;
-				bool waterNearby2 = tile4.water();
-				bool lavaNearby2 = tile4.lava();
-				bool honeyNearby2 = tile4.honey();
-				bool shimmerNearby2 = tile4.shimmer();
-				GetLiquidMergeTypes(thisLiquidType, out liquidMergeTileType2, out liquidMergeType2, waterNearby2, lavaNearby2, honeyNearby2, shimmerNearby2);
-				tile5.liquid = 0;
-				CreateLiquidMergeTile(x, y + 1, thisLiquidType, liquidMergeType2, liquidMergeTileType2, createMergeTilesDuringGen);
-			}
+			int liquidMergeTileType2 = 56;
+			int liquidMergeType2 = 0;
+			bool waterNearby2 = tile4.water();
+			bool lavaNearby2 = tile4.lava();
+			bool honeyNearby2 = tile4.honey();
+			bool shimmerNearby2 = tile4.shimmer();
+			GetLiquidMergeTypes(thisLiquidType, out liquidMergeTileType2, out liquidMergeType2, waterNearby2, lavaNearby2, honeyNearby2, shimmerNearby2);
+			tile5.liquid = 0;
+			tile4.liquid = 0;
+			CreateLiquidMergeTile(x, y + 1, thisLiquidType, liquidMergeType2, liquidMergeTileType2, createMergeTilesDuringGen);
 		}
 	}
 
@@ -1607,5 +1607,73 @@ public class Liquid
 				WorldGen.CheckLilyPad(num, num2);
 			}
 		}
+	}
+
+	internal static void AddGameplaySnapshotComponents()
+	{
+		StateSnapshot.Gameplay.AddRef("Main.liquid", () => Main.liquid, delegate(Liquid[] v)
+		{
+			Main.liquid = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.numLiquid", () => numLiquid, delegate(int v)
+		{
+			numLiquid = v;
+		});
+		StateSnapshot.Gameplay.AddRef("Main.liquidBuffer", () => Main.liquidBuffer, delegate(LiquidBuffer[] v)
+		{
+			Main.liquidBuffer = v;
+		});
+		StateSnapshot.Gameplay.AddVal("LiquidBuffer.numLiquidBuffer", () => LiquidBuffer.numLiquidBuffer, delegate(int v)
+		{
+			LiquidBuffer.numLiquidBuffer = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.curMaxLiquid", () => curMaxLiquid, delegate(int v)
+		{
+			curMaxLiquid = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.skipCount", () => skipCount, delegate(int v)
+		{
+			skipCount = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.stuckCount", () => stuckCount, delegate(int v)
+		{
+			stuckCount = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.stuckAmount", () => stuckAmount, delegate(int v)
+		{
+			stuckAmount = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.cycles", () => cycles, delegate(int v)
+		{
+			cycles = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.stuck", () => stuck, delegate(bool v)
+		{
+			stuck = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.quickFall", () => quickFall, delegate(bool v)
+		{
+			quickFall = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.quickSettle", () => quickSettle, delegate(bool v)
+		{
+			quickSettle = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.panicCounter", () => panicCounter, delegate(int v)
+		{
+			panicCounter = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.panicMode", () => panicMode, delegate(bool v)
+		{
+			panicMode = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.panicY", () => panicY, delegate(int v)
+		{
+			panicY = v;
+		});
+		StateSnapshot.Gameplay.AddVal("Liquid.wetCounter", () => wetCounter, delegate(int v)
+		{
+			wetCounter = v;
+		});
 	}
 }

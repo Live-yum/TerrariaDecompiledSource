@@ -8,7 +8,7 @@ public struct BitsByte
 {
 	private static bool Null;
 
-	private byte value;
+	private byte value = 0;
 
 	public bool this[int key]
 	{
@@ -31,7 +31,6 @@ public struct BitsByte
 
 	public BitsByte(bool b1 = false, bool b2 = false, bool b3 = false, bool b4 = false, bool b5 = false, bool b6 = false, bool b7 = false, bool b8 = false)
 	{
-		value = 0;
 		this[0] = b1;
 		this[1] = b2;
 		this[2] = b3;

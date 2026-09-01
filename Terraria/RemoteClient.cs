@@ -20,19 +20,13 @@ public class RemoteClient
 
 	public bool PendingTerminationApproved;
 
+	public bool Kicked;
+
 	public bool IsAnnouncementCompleted;
 
 	public int State;
 
 	public int TimeOutTimer;
-
-	public string StatusText = "";
-
-	public string StatusText2;
-
-	public int StatusCount;
-
-	public int StatusMax;
 
 	public bool[,] TileSections = new bool[Main.maxTilesX / 200 + 1, Main.maxTilesY / 150 + 1];
 
@@ -184,10 +178,8 @@ public class RemoteClient
 		{
 			return;
 		}
-		int num3 = num;
-		NetMessage.SendData(9, client.Id, -1, Lang.inter[44].ToNetworkText(), num3);
-		client.StatusText2 = Language.GetTextValue("Net.IsReceivingTileData");
-		client.StatusMax += num3;
+		int number = num;
+		NetMessage.SendData(9, client.Id, -1, Lang.inter[44].ToNetworkText(), number);
 		for (int k = sectionX - fluff; k < sectionX + fluff + 1; k++)
 		{
 			for (int l = sectionY - fluff; l < sectionY + fluff + 1; l++)
@@ -241,30 +233,24 @@ public class RemoteClient
 			Main.player[Id] = new Player();
 		}
 		TimeOutTimer = 0;
-		StatusCount = 0;
-		StatusMax = 0;
-		StatusText2 = "";
-		StatusText = "";
 		State = 0;
 		_isReading = false;
 		PendingTermination = false;
 		PendingTerminationApproved = false;
+		Kicked = false;
 		SpamClear();
 		IsActive = false;
 		NetMessage.buffer[Id].Reset();
 		if (Socket != null)
 		{
 			Socket.Close();
+			Socket = null;
 		}
 	}
 
 	public void ServerWriteCallBack(object state)
 	{
 		NetMessage.buffer[Id].spamCount--;
-		if (StatusMax > 0)
-		{
-			StatusCount++;
-		}
 	}
 
 	public void Update()
@@ -275,7 +261,6 @@ public class RemoteClient
 			IsActive = true;
 		}
 		TryRead();
-		UpdateStatusText();
 	}
 
 	private void TryRead()
@@ -322,44 +307,5 @@ public class RemoteClient
 			}
 		}
 		_isReading = false;
-	}
-
-	private void UpdateStatusText()
-	{
-		if (StatusMax > 0 && StatusText2 != "")
-		{
-			if (StatusCount >= StatusMax)
-			{
-				StatusText = Language.GetTextValue("Net.ClientStatusComplete", Socket.GetRemoteAddress(), Name, StatusText2);
-				StatusText2 = "";
-				StatusMax = 0;
-				StatusCount = 0;
-				return;
-			}
-			StatusText = string.Concat("(", Socket.GetRemoteAddress(), ") ", Name, " ", StatusText2, ": ", (int)((float)StatusCount / (float)StatusMax * 100f), "%");
-		}
-		else if (State == 0)
-		{
-			StatusText = Language.GetTextValue("Net.ClientConnecting", $"({Socket.GetRemoteAddress()}) {Name}");
-		}
-		else if (State == 1)
-		{
-			StatusText = Language.GetTextValue("Net.ClientSendingData", Socket.GetRemoteAddress(), Name);
-		}
-		else if (State == 2)
-		{
-			StatusText = Language.GetTextValue("Net.ClientRequestedWorldInfo", Socket.GetRemoteAddress(), Name);
-		}
-		else if (State != 3 && State == 10)
-		{
-			try
-			{
-				StatusText = Language.GetTextValue("Net.ClientPlaying", Socket.GetRemoteAddress(), Name);
-			}
-			catch (Exception)
-			{
-				PendingTermination = true;
-			}
-		}
 	}
 }

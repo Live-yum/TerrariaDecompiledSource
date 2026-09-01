@@ -18,29 +18,19 @@ public class Collision
 		BottomRight
 	}
 
-	public struct TileContact
+	public struct TileContact(TileContactSide side, int x, int y, int type, int slope, int overlap)
 	{
-		public TileContactSide Side;
+		public TileContactSide Side = side;
 
-		public int Overlap;
+		public int Overlap = overlap;
 
-		public int X;
+		public int X = x;
 
-		public int Y;
+		public int Y = y;
 
-		public int Slope;
+		public int Slope = slope;
 
-		public int Type;
-
-		public TileContact(TileContactSide side, int x, int y, int type, int slope, int overlap)
-		{
-			Side = side;
-			X = x;
-			Y = y;
-			Slope = slope;
-			Type = type;
-			Overlap = overlap;
-		}
+		public int Type = type;
 	}
 
 	public struct HurtTile
@@ -3814,6 +3804,10 @@ public class Collision
 		int num2 = (int)(position.X / 16f);
 		int num3 = (int)(position.Y / 16f);
 		Tile tile = Main.tile[num2, num3];
+		if (tile == null)
+		{
+			return 0f;
+		}
 		bool flag = false;
 		for (int num4 = 2; num4 >= 0; num4--)
 		{
@@ -3871,7 +3865,15 @@ public class Collision
 				}
 			}
 			num3++;
+			if (num3 >= Main.maxTilesY)
+			{
+				return 0f;
+			}
 			tile = Main.tile[num2, num3];
+			if (tile == null)
+			{
+				return 0f;
+			}
 			flag = true;
 		}
 		return 0f;

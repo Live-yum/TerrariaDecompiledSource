@@ -1566,7 +1566,7 @@
 		"Rain1": "Sí, puedo salir bajo la lluvia sin derretirme. ¡Soy un mago, leches!",
 		"Rain2": "Lluvia cae, lentamente sobre... uy... ¿Dónde estoy? ¿Quién eres?... ¿Quién soy?",
 		"LuckIsCursed1": "¡Aléjate! ¡Arrastras un terrorífico monstruo de la mala suerte a tu paso! ¡No quiero saber nada de ti!",
-		"LuckIsCursed2": "¡¿Acaso te has cargado todos los espejos de WorldName?! Serás idiota, ¡¡¡la maldición que te ha caído no tiene marcha atrás!!!",
+		"LuckIsCursed2": "¡¿Acaso te has cargado todos los espejos de {WorldName}?! Serás idiota, ¡¡¡la maldición que te ha caído no tiene marcha atrás!!!",
 		"LuckIsTerrible1": "¡Percibo un destino terrible a tu alrededor! ¡Hoy no deberías ni salir de la cama!",
 		"LuckIsTerrible2": "¡¿Qué clase de sal has tirado para recibir semejante infortunio?!",
 		"LuckIsPoor1": "Emanas energía negativa por todos tus poros. Yo de ti, no correría muchos riesgos hoy.",
@@ -2205,7 +2205,7 @@
 		"LikeNPC": "{NPCName} intenta tratarme favorablemente como a cualquier humano. Creo que me gusta eso.",
 		"LoveNPC": "Me encanta estar cerca de {NPCName}.",
 		"DislikeNPC": "{NPCName} no comprende mi existencia, pues se desvía de la norma. Es inusual. El sentimiento negativo es mutuo.",
-		"HateNPC": "Las funciones de {NPCName} no pueden analizarse científicamente. Funciones neutras sobrecargadas. Traducción: Odio esto.",
+		"HateNPC": "Las funciones de {NPCName} no pueden analizarse científicamente. Funciones neurales sobrecargadas. Traducción: Odio esto.",
 		"LikeNPC_Princess": "Se ha analizado a {NPCName}: Es la forma de carbono más íntegra de la que se tengan datos."
 	},
 	"TownNPCMood_SantaClaus": {

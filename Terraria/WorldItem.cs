@@ -9,18 +9,25 @@ using Terraria.GameContent.Achievements;
 using Terraria.GameContent.Drawing;
 using Terraria.GameContent.Events;
 using Terraria.ID;
+using Terraria.Testing;
 
 namespace Terraria;
 
 public class WorldItem : Entity
 {
-	public Item inner = new Item();
+	public int playerIndexTheItemIsReservedFor;
 
-	public int ownTime;
+	public int timeSinceTheItemHasBeenReservedForSomeone;
 
-	public int playerIndexTheItemIsReservedFor = 255;
+	public int timeToKeepReservation;
 
-	public int noGrabDelay;
+	public int grabDelayPlayer;
+
+	public int grabDelayTime;
+
+	public int enemyGrabDelayTime;
+
+	public static readonly int DefaultGrabDelay;
 
 	public bool shimmered;
 
@@ -28,23 +35,15 @@ public class WorldItem : Entity
 
 	public bool instanced;
 
-	public int ownIgnore = -1;
-
-	public int timeSinceTheItemHasBeenReservedForSomeone;
-
-	public int timeLeftInWhichTheItemCannotBeTakenByEnemies;
-
 	public int timeSinceItemSpawned;
 
 	public bool beingGrabbed;
 
 	public bool onConveyor;
 
-	public int keepTime;
+	public Item inner { get; private set; }
 
-	private static SceneMetrics _sceneMetrics;
-
-	public bool active => inner.active;
+	public bool active => type != 0;
 
 	public int type
 	{
@@ -70,15 +69,15 @@ public class WorldItem : Entity
 		}
 	}
 
-	public bool newAndShiny
+	public byte prefix
 	{
 		get
 		{
-			return inner.newAndShiny;
+			return inner.prefix;
 		}
 		set
 		{
-			inner.newAndShiny = value;
+			inner.prefix = value;
 		}
 	}
 
@@ -94,69 +93,13 @@ public class WorldItem : Entity
 		}
 	}
 
-	public bool favorited
-	{
-		get
-		{
-			return inner.favorited;
-		}
-		set
-		{
-			inner.favorited = value;
-		}
-	}
-
-	public short makeNPC
-	{
-		get
-		{
-			return inner.makeNPC;
-		}
-		set
-		{
-			inner.makeNPC = value;
-		}
-	}
-
 	public int value => inner.value;
-
-	public int useTime => inner.useTime;
-
-	public int useAnimation => inner.useAnimation;
-
-	public int useAmmo => inner.useAmmo;
 
 	public int maxStack => inner.maxStack;
 
-	public int damage => inner.damage;
-
-	public float knockBack => inner.knockBack;
-
-	public float shootSpeed => inner.shootSpeed;
-
 	public float scale => inner.scale;
 
-	public int ammo => inner.ammo;
-
-	public bool notAmmo => inner.notAmmo;
-
-	public int shoot => inner.shoot;
-
-	public int rare => inner.rare;
-
-	public int placeStyle => inner.placeStyle;
-
-	public int createTile => inner.createTile;
-
-	public int glowMask => inner.glowMask;
-
-	public bool expert => inner.expert;
-
 	public string Name => inner.Name;
-
-	public int alpha => inner.alpha;
-
-	public int buffType => inner.buffType;
 
 	public bool IsACoin => inner.IsACoin;
 
@@ -164,7 +107,7 @@ public class WorldItem : Entity
 
 	static WorldItem()
 	{
-		_sceneMetrics = new SceneMetrics();
+		DefaultGrabDelay = 100;
 		RemoteClient.NetSectionActivated += SyncItemsInSection;
 	}
 
@@ -173,57 +116,37 @@ public class WorldItem : Entity
 		return "[" + whoAmI + "]" + inner;
 	}
 
-	public void ClearOut()
+	public void ReplaceWith(Item item)
 	{
-		TurnToAir();
+		if (inner.IsAir && !item.IsAir)
+		{
+			throw new Exception("Attempt to create a WorldItem manually?");
+		}
+		inner = item;
+		inner.newAndShiny = true;
 	}
 
-	public void OverrideWith(Item item)
+	public WorldItem()
+		: this(new Item())
+	{
+	}
+
+	public WorldItem(Item item)
 	{
 		inner = item;
+		inner.newAndShiny = true;
+		width = (height = 16);
+		playerIndexTheItemIsReservedFor = ((Main.netMode == 0) ? Main.myPlayer : 255);
 	}
 
-	public void ResetStats(int Type)
+	public void TurnToAir()
 	{
-		SetDefaultsBringOver();
-		inner.ResetStats(Type);
-		wet = false;
-		wetCount = 0;
-		lavaWet = false;
-		timeSinceTheItemHasBeenReservedForSomeone = 0;
-		instanced = false;
-		UpdateEntityFields();
-	}
-
-	public void SetDefaultsBringOver()
-	{
-		if (Main.netMode == 1 || Main.netMode == 2)
-		{
-			playerIndexTheItemIsReservedFor = 255;
-		}
-		else
-		{
-			playerIndexTheItemIsReservedFor = Main.myPlayer;
-		}
-	}
-
-	public void SetDefaults(int type)
-	{
-		ResetStats(type);
-		inner.SetDefaults(type);
-		UpdateEntityFields();
-	}
-
-	public void TurnToAir(bool fullReset = false)
-	{
-		inner.TurnToAir(fullReset);
-		UpdateEntityFields();
+		inner.TurnToAir();
 	}
 
 	public void Prefix(int prefix)
 	{
 		inner.Prefix(prefix);
-		UpdateEntityFields();
 	}
 
 	public bool OnlyNeedOneInInventory()
@@ -231,29 +154,14 @@ public class WorldItem : Entity
 		return inner.OnlyNeedOneInInventory();
 	}
 
-	public Color GetColor(Color newColor)
+	public void TryCombiningIntoNearbyItems()
 	{
-		return inner.GetColor(newColor);
-	}
-
-	public Color GetAlpha(Color newColor)
-	{
-		return inner.GetAlpha(newColor);
-	}
-
-	public string AffixName()
-	{
-		return inner.AffixName();
-	}
-
-	public void TryCombiningIntoNearbyItems(int myItemIndex)
-	{
-		if (playerIndexTheItemIsReservedFor != Main.myPlayer || !inner.CanPassivelyStackInWorld() || stack >= maxStack)
+		if (playerIndexTheItemIsReservedFor != Main.myPlayer || shimmerTime > 0f || !inner.CanPassivelyStackInWorld() || stack >= maxStack)
 		{
 			return;
 		}
 		int num = 30;
-		for (int i = myItemIndex + 1; i < 400; i++)
+		for (int i = whoAmI + 1; i < 400; i++)
 		{
 			WorldItem worldItem = Main.item[i];
 			if (!worldItem.IsAir && Item.CanStack(inner, worldItem.inner) && worldItem.shimmered == shimmered && worldItem.playerIndexTheItemIsReservedFor == playerIndexTheItemIsReservedFor && !(Math.Abs(position.X - worldItem.position.X) + Math.Abs(position.Y - worldItem.position.Y) > (float)num))
@@ -270,44 +178,36 @@ public class WorldItem : Entity
 				}
 				if (Main.netMode != 0)
 				{
-					NetMessage.SendData(21, -1, -1, null, myItemIndex);
-					NetMessage.SendData(21, -1, -1, null, i);
+					SyncItem();
+					worldItem.SyncItem();
 				}
 			}
 		}
 	}
 
-	public void FindOwner()
+	public void FindOwner(bool forceAssignToServer = false)
 	{
-		if (Main.netMode == 1 && shimmerTime > 0f)
+		Invariant.Assert(Main.netMode != 0, "FindOwner in singleplayer");
+		if (forceAssignToServer)
 		{
-			keepTime = 0;
+			timeToKeepReservation = 0;
 		}
-		if (keepTime > 0)
+		if (instanced || timeToKeepReservation > 0)
 		{
 			return;
 		}
 		int num = playerIndexTheItemIsReservedFor;
 		int num2 = 255;
-		bool flag = true;
-		if (type == 267 && ownIgnore != -1)
-		{
-			flag = false;
-		}
-		if (EmergencyStacking.HasPendingTransferInvolving(this))
+		if (forceAssignToServer || shimmerTime > 0f || (grabDelayTime > 0 && grabDelayPlayer == 255) || EmergencyStacking.HasPendingTransferInvolving(this))
 		{
 			num2 = 255;
 		}
-		else if (shimmerTime > 0f)
-		{
-			num2 = 255;
-		}
-		else if (flag)
+		else
 		{
 			float num3 = NPC.sWidth;
 			for (int i = 0; i < 255; i++)
 			{
-				if (ownIgnore == i)
+				if (grabDelayTime > 0 && grabDelayPlayer == i)
 				{
 					continue;
 				}
@@ -316,8 +216,8 @@ public class WorldItem : Entity
 				{
 					continue;
 				}
-				Player.ItemSpaceStatus status = player.ItemSpace(Main.item[whoAmI]);
-				if (player.CanPullItem(Main.item[whoAmI], status))
+				Player.ItemSpaceStatus status = player.ItemSpace(this);
+				if (player.CanPullItem(this, status))
 				{
 					float num4 = Math.Abs(player.position.X + (float)(player.width / 2) - position.X - (float)(width / 2)) + Math.Abs(player.position.Y + (float)(player.height / 2) - position.Y - (float)height);
 					if (player.manaMagnet && (type == 184 || type == 1735 || type == 1868))
@@ -358,7 +258,7 @@ public class WorldItem : Entity
 		if (Main.netMode == 1)
 		{
 			playerIndexTheItemIsReservedFor = 255;
-			NetMessage.SendData(39, -1, -1, null, whoAmI);
+			NetMessage.SendData(39, -1, -1, null, whoAmI, forceAssignToServer ? 1 : 0);
 		}
 		else if (num != Main.myPlayer && Main.player[num].active)
 		{
@@ -371,62 +271,113 @@ public class WorldItem : Entity
 		}
 		else
 		{
-			playerIndexTheItemIsReservedFor = num2;
-			timeSinceTheItemHasBeenReservedForSomeone = 0;
-			NetMessage.SendData(22, -1, -1, null, whoAmI);
+			ReserveFor(num2);
 		}
 	}
 
-	private void UpdateEntityFields()
+	public void ReserveFor(int player, int timeToKeepReservation = 15)
 	{
-		width = (height = 16);
+		Invariant.Assert(Main.netMode == 2, "Can only be called on server");
+		Invariant.Assert(player == 255 || Main.player[player].active, "Attempted to reserve for a disconnected player");
+		if (playerIndexTheItemIsReservedFor != 255 && Main.player[playerIndexTheItemIsReservedFor].active)
+		{
+			Invariant.Assert(condition: false, "Already reserved for someone else");
+			return;
+		}
+		playerIndexTheItemIsReservedFor = player;
+		timeSinceTheItemHasBeenReservedForSomeone = 0;
+		NetMessage.SendData(22, -1, -1, null, whoAmI, timeToKeepReservation);
+	}
+
+	public void ApplySpawnOwnership(NewItemOwnership owner, int localPlayerIndex)
+	{
+		if (Main.netMode == 1)
+		{
+			return;
+		}
+		switch (owner)
+		{
+		case NewItemOwnership.ReserveForLocalPlayer:
+			if (Main.netMode == 2 && localPlayerIndex == 255)
+			{
+				Invariant.Assert(condition: false, "Item spawned on server with ReserveForLocalPlayer but no local player context");
+			}
+			else if (Main.netMode != 0)
+			{
+				ReserveFor(localPlayerIndex, DefaultGrabDelay);
+				return;
+			}
+			break;
+		case NewItemOwnership.GrabDelayForLocalPlayer:
+			grabDelayTime = DefaultGrabDelay;
+			grabDelayPlayer = localPlayerIndex;
+			break;
+		case NewItemOwnership.GrabDelayForAllPlayers:
+			grabDelayTime = DefaultGrabDelay;
+			grabDelayPlayer = 255;
+			break;
+		}
+		if (Main.netMode != 0)
+		{
+			FindOwner();
+		}
+	}
+
+	public void MakeInstanced(Predicate<Player> shouldSpawnForPlayer, int defaultLifetimeOverride = 0)
+	{
+		if (Main.netMode != 2)
+		{
+			return;
+		}
+		Main.timeItemSlotCannotBeReusedFor[whoAmI] = ((defaultLifetimeOverride > 0) ? defaultLifetimeOverride : 54000);
+		for (int i = 0; i < 255; i++)
+		{
+			if (Main.player[i].active && shouldSpawnForPlayer(Main.player[i]))
+			{
+				NetMessage.SendData(90, i, -1, null, whoAmI);
+			}
+		}
+		TurnToAir();
 	}
 
 	public void UpdateItem(int i)
 	{
-		UpdateEntityFields();
 		whoAmI = i;
 		if (Main.timeItemSlotCannotBeReusedFor[i] > 0)
 		{
-			if (Main.netMode == 2)
+			if (Main.netMode != 2)
 			{
-				Main.timeItemSlotCannotBeReusedFor[i]--;
+				Invariant.Assert(condition: false, "timeItemSlotCannotBeReusedFor set on client?");
 				return;
 			}
-			Main.timeItemSlotCannotBeReusedFor[i] = 0;
+			Main.timeItemSlotCannotBeReusedFor[i]--;
+			if (Main.timeItemSlotCannotBeReusedFor[i] == 0)
+			{
+				NetMessage.SendData(151, -1, -1, null, i);
+			}
 		}
 		if (!active)
 		{
 			return;
 		}
-		if (instanced)
+		if (instanced && Main.netMode == 2)
 		{
-			if (Main.netMode == 2)
-			{
-				TurnToAir();
-				return;
-			}
-			keepTime = 6000;
-			ownTime = 0;
-			noGrabDelay = 0;
-			playerIndexTheItemIsReservedFor = Main.myPlayer;
-		}
-		if (Main.netMode == 0)
-		{
-			playerIndexTheItemIsReservedFor = Main.myPlayer;
+			Invariant.Assert(condition: false, "Instanced item on the server?");
+			TurnToAir();
+			return;
 		}
 		float gravity = 0.1f;
 		float maxFallSpeed = 7f;
 		if (Main.netMode == 1)
 		{
-			Point p = base.Bottom.ToTileCoordinates();
-			if (WorldGen.InWorld(p) && Main.tile[p.X, p.Y] == null)
+			Point point = base.Bottom.ToTileCoordinates();
+			if (!WorldGen.IsTileLoaded(point.X, point.Y))
 			{
 				gravity = 0f;
 				velocity = Vector2.Zero;
 				if (instanced && Main.GameUpdateCount % 10 == 0)
 				{
-					NetMessage.SendData(159, -1, -1, null, p.X / 200, p.Y / 150);
+					NetMessage.SendData(159, -1, -1, null, point.X / 200, point.Y / 150);
 				}
 			}
 		}
@@ -448,141 +399,33 @@ public class WorldItem : Entity
 			gravity = 0.08f;
 			maxFallSpeed = 5f;
 		}
-		if (ownTime > 0)
-		{
-			ownTime--;
-		}
-		else
-		{
-			ownIgnore = -1;
-		}
-		if (keepTime > 0)
-		{
-			keepTime--;
-		}
 		if (!beingGrabbed)
 		{
-			if (type == 205 && playerIndexTheItemIsReservedFor == Main.myPlayer && Main.raining && (Main.isThereAWorldSurface || Main.remixWorld) && WorldGen.IsSurfaceForAtmospherics(position.ToTileCoordinates()))
+			if (type == 205)
 			{
-				int num = (int)base.Center.X / 16;
-				int num2 = (int)base.Center.Y / 16;
-				if (WorldGen.InWorld(num, num2) && WallID.Sets.AllowsWind[Main.tile[num, num2].wall])
-				{
-					int num3 = 600;
-					if (Main.dayRate > 0 && Main.dayRate < num3)
-					{
-						num3 /= Main.dayRate;
-					}
-					if (Main.rand.Next(num3) == 0 && Main.rand.NextFloat() < Main.maxRaining)
-					{
-						int num4 = stack;
-						SetDefaults(206);
-						playerIndexTheItemIsReservedFor = Main.myPlayer;
-						stack = num4;
-						NetMessage.SendData(21, -1, -1, null, i);
-					}
-				}
+				TryFillBucket();
 			}
-			if (shimmered)
+			UpdateShimmer(ref gravity);
+			TryCombiningIntoNearbyItems();
+			if (enemyGrabDelayTime == 0 && playerIndexTheItemIsReservedFor == Main.myPlayer)
 			{
-				if (Main.rand.Next(30) == 0)
-				{
-					int num5 = Dust.NewDust(position, width, height, 309);
-					Main.dust[num5].position.X += Main.rand.Next(-8, 5);
-					Main.dust[num5].position.Y += Main.rand.Next(-8, 5);
-					Main.dust[num5].scale *= 1.1f;
-					Main.dust[num5].velocity *= 0.3f;
-					switch (Main.rand.Next(6))
-					{
-					case 0:
-						Main.dust[num5].color = new Color(255, 255, 210);
-						break;
-					case 1:
-						Main.dust[num5].color = new Color(190, 245, 255);
-						break;
-					case 2:
-						Main.dust[num5].color = new Color(255, 150, 255);
-						break;
-					default:
-						Main.dust[num5].color = new Color(190, 175, 255);
-						break;
-					}
-				}
-				Lighting.AddLight(base.Center, (1f - shimmerTime) * 0.8f, (1f - shimmerTime) * 0.8f, (1f - shimmerTime) * 0.8f);
-				gravity = 0f;
-				if (shimmerWet)
-				{
-					if (velocity.Y > -4f)
-					{
-						velocity.Y -= 0.05f;
-					}
-				}
-				else
-				{
-					int num6 = 2;
-					int num7 = (int)(base.Center.X / 16f);
-					int num8 = (int)(base.Center.Y / 16f);
-					bool flag = false;
-					for (int j = num8; j < num8 + num6; j++)
-					{
-						if (WorldGen.InWorld(num7, j) && Main.tile[num7, j] != null && Main.tile[num7, j].shimmer() && Main.tile[num7, j].liquid > 0)
-						{
-							flag = true;
-							break;
-						}
-					}
-					if (flag)
-					{
-						if (velocity.Y > -4f)
-						{
-							velocity.Y -= 0.05f;
-						}
-					}
-					else
-					{
-						velocity.Y *= 0.9f;
-					}
-				}
-			}
-			if (shimmerWet && !shimmered)
-			{
-				Shimmering();
-			}
-			else if (shimmerTime > 0f)
-			{
-				shimmerTime -= 0.01f;
-				if (shimmerTime < 0f)
-				{
-					shimmerTime = 0f;
-				}
-			}
-			if (shimmerTime == 0f)
-			{
-				TryCombiningIntoNearbyItems(i);
-			}
-			if (timeLeftInWhichTheItemCannotBeTakenByEnemies > 0)
-			{
-				timeLeftInWhichTheItemCannotBeTakenByEnemies--;
-			}
-			if (timeLeftInWhichTheItemCannotBeTakenByEnemies == 0 && playerIndexTheItemIsReservedFor == Main.myPlayer)
-			{
-				GetPickedUpByMonsters_Special(i);
+				GetPickedUpByMonsters_Special();
 				if (Main.expertMode && IsACoin)
 				{
-					GetPickedUpByMonsters_Money(i);
+					GetPickedUpByMonsters_Money();
 				}
 			}
-			MoveInWorld(gravity, maxFallSpeed, ref wetVelocity, i);
-			if (lavaWet)
-			{
-				CheckLavaDeath(i);
-			}
-			CheckInWorld(i);
-			DespawnIfMeetingConditions(i);
+			MoveInWorld(gravity, maxFallSpeed, ref wetVelocity);
 			if (type == 74)
 			{
 				TryGrantingMakeAWishSet();
 			}
+			if (lavaWet)
+			{
+				CheckLavaDeath();
+			}
+			CheckInWorld();
+			DespawnIfMeetingConditions();
 		}
 		else
 		{
@@ -600,13 +443,139 @@ public class WorldItem : Entity
 		{
 			timeSinceItemSpawned++;
 		}
-		if (noGrabDelay > 0)
+		if (grabDelayTime > 0)
 		{
-			noGrabDelay--;
+			grabDelayTime--;
+		}
+		if (timeToKeepReservation > 0)
+		{
+			timeToKeepReservation--;
+		}
+		if (enemyGrabDelayTime > 0)
+		{
+			enemyGrabDelayTime--;
 		}
 	}
 
-	private void CheckInWorld(int i)
+	private void UpdateShimmer(ref float gravity)
+	{
+		if (shimmered)
+		{
+			if (Main.rand.Next(30) == 0)
+			{
+				int num = Dust.NewDust(position, width, height, 309);
+				Main.dust[num].position.X += Main.rand.Next(-8, 5);
+				Main.dust[num].position.Y += Main.rand.Next(-8, 5);
+				Main.dust[num].scale *= 1.1f;
+				Main.dust[num].velocity *= 0.3f;
+				switch (Main.rand.Next(6))
+				{
+				case 0:
+					Main.dust[num].color = new Color(255, 255, 210);
+					break;
+				case 1:
+					Main.dust[num].color = new Color(190, 245, 255);
+					break;
+				case 2:
+					Main.dust[num].color = new Color(255, 150, 255);
+					break;
+				default:
+					Main.dust[num].color = new Color(190, 175, 255);
+					break;
+				}
+			}
+			Lighting.AddLight(base.Center, (1f - shimmerTime) * 0.8f, (1f - shimmerTime) * 0.8f, (1f - shimmerTime) * 0.8f);
+			gravity = 0f;
+			if (shimmerWet)
+			{
+				if (velocity.Y > -4f)
+				{
+					velocity.Y -= 0.05f;
+				}
+			}
+			else
+			{
+				int num2 = 2;
+				int num3 = (int)(base.Center.X / 16f);
+				int num4 = (int)(base.Center.Y / 16f);
+				bool flag = false;
+				for (int i = num4; i < num4 + num2; i++)
+				{
+					if (WorldGen.InWorld(num3, i) && Main.tile[num3, i] != null && Main.tile[num3, i].shimmer() && Main.tile[num3, i].liquid > 0)
+					{
+						flag = true;
+						break;
+					}
+				}
+				if (flag)
+				{
+					if (velocity.Y > -4f)
+					{
+						velocity.Y -= 0.05f;
+					}
+				}
+				else
+				{
+					velocity.Y *= 0.9f;
+				}
+			}
+		}
+		if (shimmerWet && !shimmered && CanShimmerAtPosition())
+		{
+			shimmerTime += 0.01f;
+			if (shimmerTime > 1f)
+			{
+				shimmerTime = 1f;
+			}
+			if (playerIndexTheItemIsReservedFor == Main.myPlayer)
+			{
+				if (Main.netMode == 1)
+				{
+					FindOwner(forceAssignToServer: true);
+				}
+				else if (shimmerTime > 0.9f)
+				{
+					shimmerTime = 0.9f;
+					GetShimmered();
+				}
+			}
+		}
+		else if (shimmerTime > 0f)
+		{
+			shimmerTime -= 0.01f;
+			if (shimmerTime < 0f)
+			{
+				shimmerTime = 0f;
+			}
+		}
+	}
+
+	private void TryFillBucket()
+	{
+		if (playerIndexTheItemIsReservedFor != Main.myPlayer || !Main.raining || (!Main.isThereAWorldSurface && !Main.remixWorld) || !WorldGen.IsSurfaceForAtmospherics(position.ToTileCoordinates()))
+		{
+			return;
+		}
+		int num = (int)base.Center.X / 16;
+		int num2 = (int)base.Center.Y / 16;
+		if (WorldGen.InWorld(num, num2) && WallID.Sets.AllowsWind[Main.tile[num, num2].wall])
+		{
+			int num3 = 600;
+			if (Main.dayRate > 0 && Main.dayRate < num3)
+			{
+				num3 /= Main.dayRate;
+			}
+			if (Main.rand.Next(num3) == 0 && Main.rand.NextFloat() < Main.maxRaining)
+			{
+				int num4 = stack;
+				inner.SetDefaults(206);
+				stack = num4;
+				SyncItem();
+			}
+		}
+	}
+
+	private void CheckInWorld()
 	{
 		if (!WorldGen.InWorld(position.ToTileCoordinates(), 20))
 		{
@@ -620,98 +589,90 @@ public class WorldItem : Entity
 			{
 				TurnToAir();
 			}
-			if (Main.netMode == 2)
-			{
-				NetMessage.SendData(21, -1, -1, null, i);
-			}
+			SyncItem();
 		}
 	}
 
 	private void TryGrantingMakeAWishSet()
 	{
-		if (playerIndexTheItemIsReservedFor != Main.myPlayer || !wet || stack != 1 || (ownIgnore == 1 && noGrabDelay <= 0))
+		if (playerIndexTheItemIsReservedFor == Main.myPlayer && wet && stack == 1 && !shimmerWet && grabDelayTime > 0 && grabDelayPlayer != 255)
+		{
+			byte b = Player.FindClosest(position, width, height);
+			if (b != byte.MaxValue && Main.player[b].ZoneDesert)
+			{
+				TurnToAirAndSync();
+				int num = 0;
+				SpawnShimmeredItem(num++, 5655);
+				SpawnShimmeredItem(num++, 5656);
+				SpawnShimmeredItem(num++, 5657);
+				SpawnShimmeredItem(num++, 5658);
+				SpawnShimmeredItem(num++, 5661);
+				ParticleOrchestrator.BroadcastOrRequestParticleSpawn(ParticleOrchestraType.HeroicisSetSpawnSound, new ParticleOrchestraSettings
+				{
+					PositionInWorld = base.Center
+				});
+			}
+		}
+	}
+
+	public void SyncItem()
+	{
+		NetMessage.SendData(21, -1, -1, null, whoAmI);
+	}
+
+	public void TurnToAirAndSync()
+	{
+		TurnToAir();
+		SyncItem();
+	}
+
+	public void SpawnShimmeredItem(int itemNumber, int type, int stack = 1)
+	{
+		SpawnShimmeredItem(GetItemSource_Misc(ItemSourceID.Shimmer), base.Center, itemNumber, type, stack);
+	}
+
+	public static void SpawnShimmeredItem(IEntitySource source, Vector2 center, int itemNumber, int type, int stack = 1)
+	{
+		Vector2 vector = new Vector2(itemNumber * (itemNumber % 2 * 2 - 1), 0f);
+		Item.RequestNewItem(source, center, type, stack, 0, NewItemOwnership.None, vector, delegate(WorldItem item)
+		{
+			item.shimmerTime = 1f;
+			item.shimmered = true;
+			item.shimmerWet = true;
+			item.wet = true;
+		});
+	}
+
+	private void DespawnIfMeetingConditions()
+	{
+		if (playerIndexTheItemIsReservedFor != Main.myPlayer)
 		{
 			return;
 		}
-		byte b = Player.FindClosest(position, width, height);
-		if (b != byte.MaxValue && Main.player[b].ZoneDesert)
-		{
-			TurnToAir();
-			if (Main.netMode != 0)
-			{
-				NetMessage.SendData(21, -1, -1, null, whoAmI);
-			}
-			bool splitToSides = true;
-			int numberOfItems = 5;
-			SpawnShimmeredItem(5655, splitToSides, numberOfItems);
-			SpawnShimmeredItem(5656, splitToSides, numberOfItems);
-			SpawnShimmeredItem(5657, splitToSides, numberOfItems);
-			SpawnShimmeredItem(5658, splitToSides, numberOfItems);
-			SpawnShimmeredItem(5661, splitToSides, numberOfItems);
-			ParticleOrchestrator.BroadcastOrRequestParticleSpawn(ParticleOrchestraType.HeroicisSetSpawnSound, new ParticleOrchestraSettings
-			{
-				PositionInWorld = base.Center
-			});
-		}
-	}
-
-	private void SpawnShimmeredItem(short idToCheck, bool splitToSides, int numberOfItems)
-	{
-		int num = Item.NewItem(GetItemSource_Misc(ItemSourceID.Shimmer), (int)position.X, (int)position.Y, width, height, idToCheck);
-		WorldItem worldItem = Main.item[num];
-		worldItem.stack = 1;
-		worldItem.shimmerTime = 1f;
-		worldItem.shimmered = true;
-		worldItem.shimmerWet = true;
-		worldItem.wet = true;
-		worldItem.velocity *= 0.1f;
-		worldItem.playerIndexTheItemIsReservedFor = Main.myPlayer;
-		if (splitToSides)
-		{
-			worldItem.velocity.X = 1f * (float)numberOfItems;
-			worldItem.velocity.X *= 1f + (float)numberOfItems * 0.05f;
-			if (numberOfItems % 2 == 0)
-			{
-				worldItem.velocity.X *= -1f;
-			}
-		}
-		NetMessage.SendData(145, -1, -1, null, num, 1f);
-	}
-
-	private void DespawnIfMeetingConditions(int i)
-	{
 		if (type == 75 && Main.dayTime && !Main.remixWorld && !shimmered && !beingGrabbed)
 		{
-			for (int j = 0; j < 10; j++)
+			for (int i = 0; i < 10; i++)
 			{
 				Dust.NewDust(position, width, height, 15, velocity.X, velocity.Y, 150, default(Color), 1.2f);
 			}
-			for (int k = 0; k < 3; k++)
+			for (int j = 0; j < 3; j++)
 			{
 				Gore.NewGore(position, new Vector2(velocity.X, velocity.Y), Main.rand.Next(16, 18));
 			}
-			TurnToAir();
-			if (Main.netMode == 2)
-			{
-				NetMessage.SendData(21, -1, -1, null, i);
-			}
+			TurnToAirAndSync();
 		}
 		if (type == 4143 && timeSinceItemSpawned > 300)
 		{
-			for (int l = 0; l < 20; l++)
+			for (int k = 0; k < 20; k++)
 			{
 				Dust.NewDust(position, width, height, 15, velocity.X, velocity.Y, 150, Color.Lerp(Color.CornflowerBlue, Color.Indigo, Main.rand.NextFloat()), 1.2f);
 			}
-			TurnToAir();
-			if (Main.netMode == 2)
-			{
-				NetMessage.SendData(21, -1, -1, null, i);
-			}
+			TurnToAirAndSync();
 		}
 		if (type == 3822 && !DD2Event.Ongoing)
 		{
 			int num = Main.rand.Next(18, 24);
-			for (int m = 0; m < num; m++)
+			for (int l = 0; l < num; l++)
 			{
 				int num2 = Dust.NewDust(base.Center, 0, 0, 61, 0f, 0f, 0, default(Color), 1.7f);
 				Main.dust[num2].velocity *= 8f;
@@ -720,129 +681,102 @@ public class WorldItem : Entity
 				Main.dust[num2].noGravity = true;
 				Main.dust[num2].noLight = true;
 			}
-			TurnToAir();
-			if (Main.netMode == 2)
-			{
-				NetMessage.SendData(21, -1, -1, null, i);
-			}
+			TurnToAirAndSync();
 		}
 	}
 
-	private void CheckLavaDeath(int i)
+	private void CheckLavaDeath()
 	{
+		if (playerIndexTheItemIsReservedFor != Main.myPlayer || IsAir)
+		{
+			return;
+		}
 		if (type == 267)
 		{
-			if (Main.netMode == 1)
-			{
-				return;
-			}
-			int num = stack;
-			TurnToAir();
-			bool flag = false;
-			for (int j = 0; j < Main.maxNPCs; j++)
-			{
-				if (Main.npc[j].active && Main.npc[j].type == 22)
-				{
-					int num2 = -Main.npc[j].direction;
-					if (Main.npc[j].IsNPCValidForBestiaryKillCredit())
-					{
-						Main.BestiaryTracker.Kills.RegisterKill(Main.npc[j]);
-					}
-					Main.npc[j].StrikeNPCNoInteraction(9999, 10f, -num2);
-					num--;
-					flag = true;
-					if (Main.netMode == 2)
-					{
-						NetMessage.SendData(28, -1, -1, null, j, 9999f, 10f, -num2);
-					}
-					NPC.SpawnWOF(position);
-				}
-			}
-			if (flag)
-			{
-				List<int> list = new List<int>();
-				for (int k = 0; k < Main.maxNPCs; k++)
-				{
-					if (num <= 0)
-					{
-						break;
-					}
-					NPC nPC = Main.npc[k];
-					if (nPC.active && nPC.isLikeATownNPC)
-					{
-						list.Add(k);
-					}
-				}
-				while (num > 0 && list.Count > 0)
-				{
-					int index = Main.rand.Next(list.Count);
-					int num3 = list[index];
-					list.RemoveAt(index);
-					int num4 = -Main.npc[num3].direction;
-					if (Main.npc[num3].IsNPCValidForBestiaryKillCredit())
-					{
-						Main.BestiaryTracker.Kills.RegisterKill(Main.npc[num3]);
-					}
-					Main.npc[num3].StrikeNPCNoInteraction(9999, 10f, -num4);
-					num--;
-					if (Main.netMode == 2)
-					{
-						NetMessage.SendData(28, -1, -1, null, num3, 9999f, 10f, -num4);
-					}
-				}
-			}
-			NetMessage.SendData(21, -1, -1, null, i);
+			VoodooDollLavaDeath();
+			return;
 		}
-		else if (playerIndexTheItemIsReservedFor == Main.myPlayer && (type > 0 || type < ItemID.Count) && (rare == 0 || rare == -1) && !ItemID.Sets.IsLavaImmuneRegardlessOfRarity[type])
+		int rare = inner.rare;
+		if ((rare == 0 || rare == -1) && !ItemID.Sets.IsLavaImmuneRegardlessOfRarity[type])
 		{
-			TurnToAir();
-			if (Main.netMode != 0)
-			{
-				NetMessage.SendData(21, -1, -1, null, i);
-			}
+			TurnToAirAndSync();
 		}
 	}
 
-	private void Shimmering()
+	private void VoodooDollLavaDeath()
 	{
-		if (inner.CanShimmer())
+		if (Main.netMode == 1)
 		{
-			int num = (int)(base.Center.X / 16f);
-			int num2 = (int)(position.Y / 16f - 1f);
-			Tile tile = Main.tile[num, num2];
-			if (WorldGen.InWorld(num, num2) && tile != null && tile.liquid > 0 && tile.shimmer())
+			FindOwner(forceAssignToServer: true);
+			return;
+		}
+		int num = stack;
+		TurnToAirAndSync();
+		bool flag = false;
+		for (int i = 0; i < Main.maxNPCs; i++)
+		{
+			if (Main.npc[i].active && Main.npc[i].type == 22)
 			{
-				if (playerIndexTheItemIsReservedFor == Main.myPlayer && Main.netMode != 1)
+				int num2 = -Main.npc[i].direction;
+				if (Main.npc[i].IsNPCValidForBestiaryKillCredit())
 				{
-					shimmerTime += 0.01f;
-					if (shimmerTime > 0.9f)
-					{
-						shimmerTime = 0.9f;
-						GetShimmered();
-					}
+					Main.BestiaryTracker.Kills.RegisterKill(Main.npc[i]);
 				}
-				else
-				{
-					shimmerTime += 0.01f;
-					if (shimmerTime > 1f)
-					{
-						shimmerTime = 1f;
-					}
-				}
-				return;
+				Main.npc[i].StrikeNPCNoInteraction(9999, 10f, -num2);
+				num--;
+				flag = true;
+				NPC.SpawnWOF(position);
 			}
 		}
-		if (shimmerTime > 0f)
+		if (!flag)
 		{
-			shimmerTime -= 0.01f;
-			if (shimmerTime < 0f)
+			return;
+		}
+		List<int> list = new List<int>();
+		for (int j = 0; j < Main.maxNPCs; j++)
+		{
+			if (num <= 0)
 			{
-				shimmerTime = 0f;
+				break;
 			}
+			NPC nPC = Main.npc[j];
+			if (nPC.active && nPC.isLikeATownNPC)
+			{
+				list.Add(j);
+			}
+		}
+		while (num > 0 && list.Count > 0)
+		{
+			int index = Main.rand.Next(list.Count);
+			int num3 = list[index];
+			list.RemoveAt(index);
+			int num4 = -Main.npc[num3].direction;
+			if (Main.npc[num3].IsNPCValidForBestiaryKillCredit())
+			{
+				Main.BestiaryTracker.Kills.RegisterKill(Main.npc[num3]);
+			}
+			Main.npc[num3].StrikeNPCNoInteraction(9999, 10f, -num4);
+			num--;
 		}
 	}
 
-	private void MoveInWorld(float gravity, float maxFallSpeed, ref Vector2 wetVelocity, int i)
+	private bool CanShimmerAtPosition()
+	{
+		if (!inner.CanShimmer())
+		{
+			return false;
+		}
+		int num = (int)(base.Center.X / 16f);
+		int num2 = (int)(position.Y / 16f - 1f);
+		Tile tile = Main.tile[num, num2];
+		if (WorldGen.InWorld(num, num2) && tile != null && tile.liquid != 0)
+		{
+			return tile.shimmer();
+		}
+		return false;
+	}
+
+	private void MoveInWorld(float gravity, float maxFallSpeed, ref Vector2 wetVelocity)
 	{
 		if (!shimmered && ItemID.Sets.ItemNoGravity[type])
 		{
@@ -863,9 +797,9 @@ public class WorldItem : Entity
 			if (shimmered && active)
 			{
 				int num = 50;
-				for (int j = 0; j < 400; j++)
+				for (int i = 0; i < 400; i++)
 				{
-					if (i == j || !Main.item[j].active || !Main.item[j].shimmered)
+					if (whoAmI == i || !Main.item[i].active || !Main.item[i].shimmered)
 					{
 						continue;
 					}
@@ -873,49 +807,49 @@ public class WorldItem : Entity
 					{
 						break;
 					}
-					float num2 = (width + Main.item[j].width) / 2;
-					if (!(Math.Abs(base.Center.X - Main.item[j].Center.X) <= num2) || !(Math.Abs(base.Center.Y - Main.item[j].Center.Y) <= num2))
+					float num2 = (width + Main.item[i].width) / 2;
+					if (!(Math.Abs(base.Center.X - Main.item[i].Center.X) <= num2) || !(Math.Abs(base.Center.Y - Main.item[i].Center.Y) <= num2))
 					{
 						continue;
 					}
 					flag = true;
-					float num3 = Vector2.Distance(base.Center, Main.item[j].Center);
+					float num3 = Vector2.Distance(base.Center, Main.item[i].Center);
 					num2 /= num3;
 					if (num2 > 10f)
 					{
 						num2 = 10f;
 					}
-					if (base.Center.X < Main.item[j].Center.X)
+					if (base.Center.X < Main.item[i].Center.X)
 					{
 						if (velocity.X > -3f * num2)
 						{
 							velocity.X -= 0.1f * num2;
 						}
-						if (Main.item[j].velocity.X < 3f)
+						if (Main.item[i].velocity.X < 3f)
 						{
-							Main.item[j].velocity.X += 0.1f * num2;
+							Main.item[i].velocity.X += 0.1f * num2;
 						}
 					}
-					else if (base.Center.X > Main.item[j].Center.X)
+					else if (base.Center.X > Main.item[i].Center.X)
 					{
 						if (velocity.X < 3f * num2)
 						{
 							velocity.X += 0.1f * num2;
 						}
-						if (Main.item[j].velocity.X > -3f)
+						if (Main.item[i].velocity.X > -3f)
 						{
-							Main.item[j].velocity.X -= 0.1f * num2;
+							Main.item[i].velocity.X -= 0.1f * num2;
 						}
 					}
-					else if (i < j)
+					else if (whoAmI < i)
 					{
 						if (velocity.X > -3f * num2)
 						{
 							velocity.X -= 0.1f * num2;
 						}
-						if (Main.item[j].velocity.X < 3f * num2)
+						if (Main.item[i].velocity.X < 3f * num2)
 						{
-							Main.item[j].velocity.X += 0.1f * num2;
+							Main.item[i].velocity.X += 0.1f * num2;
 						}
 					}
 				}
@@ -961,7 +895,7 @@ public class WorldItem : Entity
 					{
 						if (shimmerWet)
 						{
-							for (int k = 0; k < 10; k++)
+							for (int j = 0; j < 10; j++)
 							{
 								int num5 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 308);
 								Main.dust[num5].velocity.Y -= 4f;
@@ -988,7 +922,7 @@ public class WorldItem : Entity
 						}
 						else if (honeyWet)
 						{
-							for (int l = 0; l < 5; l++)
+							for (int k = 0; k < 5; k++)
 							{
 								int num6 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 152);
 								Main.dust[num6].velocity.Y -= 1f;
@@ -1001,7 +935,7 @@ public class WorldItem : Entity
 						}
 						else
 						{
-							for (int m = 0; m < 10; m++)
+							for (int l = 0; l < 10; l++)
 							{
 								int num7 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, Dust.dustWater());
 								Main.dust[num7].velocity.Y -= 4f;
@@ -1015,7 +949,7 @@ public class WorldItem : Entity
 					}
 					else
 					{
-						for (int n = 0; n < 5; n++)
+						for (int m = 0; m < 5; m++)
 						{
 							int num8 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 35);
 							Main.dust[num8].velocity.Y -= 1.5f;
@@ -1040,26 +974,26 @@ public class WorldItem : Entity
 				{
 					if (shimmerWet)
 					{
-						for (int num9 = 0; num9 < 10; num9++)
+						for (int n = 0; n < 10; n++)
 						{
-							int num10 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 308);
-							Main.dust[num10].velocity.Y -= 4f;
-							Main.dust[num10].velocity.X *= 2.5f;
-							Main.dust[num10].scale = 0.8f;
-							Main.dust[num10].noGravity = true;
+							int num9 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 308);
+							Main.dust[num9].velocity.Y -= 4f;
+							Main.dust[num9].velocity.X *= 2.5f;
+							Main.dust[num9].scale = 0.8f;
+							Main.dust[num9].noGravity = true;
 							switch (Main.rand.Next(6))
 							{
 							case 0:
-								Main.dust[num10].color = new Color(255, 255, 210);
+								Main.dust[num9].color = new Color(255, 255, 210);
 								break;
 							case 1:
-								Main.dust[num10].color = new Color(190, 245, 255);
+								Main.dust[num9].color = new Color(190, 245, 255);
 								break;
 							case 2:
-								Main.dust[num10].color = new Color(255, 150, 255);
+								Main.dust[num9].color = new Color(255, 150, 255);
 								break;
 							default:
-								Main.dust[num10].color = new Color(190, 175, 255);
+								Main.dust[num9].color = new Color(190, 175, 255);
 								break;
 							}
 						}
@@ -1067,41 +1001,41 @@ public class WorldItem : Entity
 					}
 					else if (honeyWet)
 					{
-						for (int num11 = 0; num11 < 5; num11++)
+						for (int num10 = 0; num10 < 5; num10++)
 						{
-							int num12 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 152);
-							Main.dust[num12].velocity.Y -= 1f;
-							Main.dust[num12].velocity.X *= 2.5f;
-							Main.dust[num12].scale = 1.3f;
-							Main.dust[num12].alpha = 100;
-							Main.dust[num12].noGravity = true;
+							int num11 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 152);
+							Main.dust[num11].velocity.Y -= 1f;
+							Main.dust[num11].velocity.X *= 2.5f;
+							Main.dust[num11].scale = 1.3f;
+							Main.dust[num11].alpha = 100;
+							Main.dust[num11].noGravity = true;
 						}
 						SoundEngine.PlaySound(19, (int)position.X, (int)position.Y);
 					}
 					else
 					{
-						for (int num13 = 0; num13 < 10; num13++)
+						for (int num12 = 0; num12 < 10; num12++)
 						{
-							int num14 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2)), width + 12, 24, Dust.dustWater());
-							Main.dust[num14].velocity.Y -= 4f;
-							Main.dust[num14].velocity.X *= 2.5f;
-							Main.dust[num14].scale *= 0.8f;
-							Main.dust[num14].alpha = 100;
-							Main.dust[num14].noGravity = true;
+							int num13 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2)), width + 12, 24, Dust.dustWater());
+							Main.dust[num13].velocity.Y -= 4f;
+							Main.dust[num13].velocity.X *= 2.5f;
+							Main.dust[num13].scale *= 0.8f;
+							Main.dust[num13].alpha = 100;
+							Main.dust[num13].noGravity = true;
 						}
 						SoundEngine.PlaySound(19, (int)position.X, (int)position.Y);
 					}
 				}
 				else
 				{
-					for (int num15 = 0; num15 < 5; num15++)
+					for (int num14 = 0; num14 < 5; num14++)
 					{
-						int num16 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 35);
-						Main.dust[num16].velocity.Y -= 1.5f;
-						Main.dust[num16].velocity.X *= 2.5f;
-						Main.dust[num16].scale = 1.3f;
-						Main.dust[num16].alpha = 100;
-						Main.dust[num16].noGravity = true;
+						int num15 = Dust.NewDust(new Vector2(position.X - 6f, position.Y + (float)(height / 2) - 8f), width + 12, 24, 35);
+						Main.dust[num15].velocity.Y -= 1.5f;
+						Main.dust[num15].velocity.X *= 2.5f;
+						Main.dust[num15].scale = 1.3f;
+						Main.dust[num15].alpha = 100;
+						Main.dust[num15].noGravity = true;
 					}
 					SoundEngine.PlaySound(19, (int)position.X, (int)position.Y);
 				}
@@ -1157,7 +1091,7 @@ public class WorldItem : Entity
 		}
 	}
 
-	private void GetPickedUpByMonsters_Special(int i)
+	private void GetPickedUpByMonsters_Special()
 	{
 		bool flag = false;
 		bool flag2 = false;
@@ -1173,30 +1107,29 @@ public class WorldItem : Entity
 		}
 		bool flag3 = false;
 		Rectangle hitbox = base.Hitbox;
-		for (int j = 0; j < Main.maxNPCs; j++)
+		for (int i = 0; i < Main.maxNPCs; i++)
 		{
-			NPC nPC = Main.npc[j];
+			NPC nPC = Main.npc[i];
 			if (nPC.active && flag && nPC.type >= 0 && nPC.type < NPCID.Count && NPCID.Sets.CanConvertIntoCopperSlimeTownNPC[nPC.type] && hitbox.Intersects(nPC.Hitbox))
 			{
 				flag3 = true;
-				NPC.TransformCopperSlime(j);
+				NPC.TransformCopperSlime(i);
 				break;
 			}
 		}
 		if (flag3)
 		{
-			TurnToAir(fullReset: true);
-			NetMessage.SendData(21, -1, -1, null, i);
+			TurnToAirAndSync();
 		}
 	}
 
-	private void GetPickedUpByMonsters_Money(int i)
+	private void GetPickedUpByMonsters_Money()
 	{
 		Rectangle rectangle = new Rectangle((int)position.X, (int)position.Y, width, height);
-		for (int j = 0; j < Main.maxNPCs; j++)
+		for (int i = 0; i < Main.maxNPCs; i++)
 		{
-			NPC nPC = Main.npc[j];
-			if (!nPC.active || nPC.lifeMax <= 5 || nPC.friendly || nPC.immortal || nPC.dontTakeDamage || NPCID.Sets.CantTakeLunchMoney[nPC.type])
+			NPC nPC = Main.npc[i];
+			if (!nPC.active || nPC.lifeMax <= 5 || nPC.friendly || nPC.immortal || nPC.dontTakeDamage || nPC.SpawnedFromStatue || NPCID.Sets.CantTakeLunchMoney[nPC.type])
 			{
 				continue;
 			}
@@ -1258,7 +1191,7 @@ public class WorldItem : Entity
 				}
 				stack -= num6;
 				int num7 = (int)((float)num6 * num2);
-				int number = j;
+				int number = i;
 				if (num4 >= 0)
 				{
 					number = num4;
@@ -1274,9 +1207,9 @@ public class WorldItem : Entity
 				}
 				if (stack <= 0)
 				{
-					TurnToAir(fullReset: true);
+					TurnToAir();
 				}
-				NetMessage.SendData(21, -1, -1, null, i);
+				SyncItem();
 			}
 		}
 	}
@@ -1464,12 +1397,12 @@ public class WorldItem : Entity
 		{
 			Lighting.AddLight((int)((position.X + (float)(width / 2)) / 16f), (int)((position.Y + (float)(height / 2)) / 16f), 0.7f, 0.65f, 0.55f);
 		}
-		else if (createTile == 4)
+		else if (inner.createTile == 4)
 		{
-			int torchID = placeStyle;
+			int placeStyle = inner.placeStyle;
 			if ((!wet && ItemID.Sets.Torches[type]) || ItemID.Sets.WaterTorches[type])
 			{
-				Lighting.AddLight(base.Center, torchID);
+				Lighting.AddLight(base.Center, placeStyle);
 			}
 		}
 		else if (type == 3114)
@@ -1755,6 +1688,11 @@ public class WorldItem : Entity
 
 	public static void ShimmerEffect(Vector2 shimmerPositon)
 	{
+		if (Main.netMode == 2)
+		{
+			NetMessage.SendData(146, -1, -1, null, 0, shimmerPositon.X, shimmerPositon.Y);
+			return;
+		}
 		SoundEngine.PlaySound(SoundID.Item176, (int)shimmerPositon.X, (int)shimmerPositon.Y);
 		for (int i = 0; i < 20; i++)
 		{
@@ -1783,6 +1721,7 @@ public class WorldItem : Entity
 		int shimmerEquivalentType = inner.GetShimmerEquivalentType();
 		int decraftingRecipeIndex = ShimmerTransforms.GetDecraftingRecipeIndex(inner.GetShimmerEquivalentType(forDecrafting: true));
 		int transformToItem = ShimmerTransforms.GetTransformToItem(shimmerEquivalentType);
+		int makeNPC = inner.makeNPC;
 		if (ItemID.Sets.CommonCoin[shimmerEquivalentType])
 		{
 			switch (shimmerEquivalentType)
@@ -1802,14 +1741,14 @@ public class WorldItem : Entity
 				break;
 			}
 			Main.player[Main.myPlayer].AddCoinLuck(base.Center, stack);
-			NetMessage.SendData(146, -1, -1, null, 1, (int)base.Center.X, (int)base.Center.Y, stack);
+			NetMessage.SendData(146, -1, -1, null, 1, base.Center.X, base.Center.Y, stack);
 			type = 0;
 			stack = 0;
 		}
 		else if (transformToItem > 0)
 		{
 			int num = stack;
-			SetDefaults(transformToItem);
+			inner.SetDefaults(transformToItem);
 			stack = num;
 			shimmered = true;
 		}
@@ -1863,7 +1802,7 @@ public class WorldItem : Entity
 				num4--;
 				stack--;
 				int num5 = -1;
-				num5 = ((NPCID.Sets.ShimmerTransformToNPC[makeNPC] < 0) ? NPC.ReleaseNPC((int)base.Center.X, (int)base.Bottom.Y, makeNPC, placeStyle, Main.myPlayer) : NPC.ReleaseNPC((int)base.Center.X, (int)base.Bottom.Y, NPCID.Sets.ShimmerTransformToNPC[makeNPC], 0, Main.myPlayer));
+				num5 = ((NPCID.Sets.ShimmerTransformToNPC[makeNPC] < 0) ? NPC.ReleaseNPC((int)base.Center.X, (int)base.Bottom.Y, makeNPC, inner.placeStyle, Main.myPlayer) : NPC.ReleaseNPC((int)base.Center.X, (int)base.Bottom.Y, NPCID.Sets.ShimmerTransformToNPC[makeNPC], 0, Main.myPlayer));
 				if (num5 >= 0)
 				{
 					Main.npc[num5].shimmerTransparency = 1f;
@@ -1879,7 +1818,7 @@ public class WorldItem : Entity
 		{
 			int num6 = inner.FindDecraftAmount();
 			Recipe recipe = Main.recipe[decraftingRecipeIndex];
-			bool flag = recipe.requiredItem[1].stack > 0;
+			_ = recipe.requiredItem[1].stack;
 			IEnumerable<Recipe.RequiredItemEntry> enumerable = recipe.requiredItemQuickLookup;
 			if (recipe.customShimmerResults != null)
 			{
@@ -1896,12 +1835,11 @@ public class WorldItem : Entity
 				{
 					break;
 				}
-				num7++;
 				int num8 = num6 * item.stack;
-				int num9 = (item.IsRecipeGroup ? item.RecipeGroup.DecraftItemId : item.itemIdOrRecipeGroup);
+				int key = (item.IsRecipeGroup ? item.RecipeGroup.DecraftItemId : item.itemIdOrRecipeGroup);
 				if (recipe.alchemy)
 				{
-					for (int num10 = num8; num10 > 0; num10--)
+					for (int num9 = num8; num9 > 0; num9--)
 					{
 						if (Main.rand.Next(3) == 0)
 						{
@@ -1911,31 +1849,9 @@ public class WorldItem : Entity
 				}
 				while (num8 > 0)
 				{
-					int num11 = num8;
-					if (num11 > 9999)
-					{
-						num11 = 9999;
-					}
-					num8 -= num11;
-					int num12 = Item.NewItem(GetItemSource_Misc(ItemSourceID.Shimmer), (int)position.X, (int)position.Y, width, height, num9);
-					WorldItem worldItem = Main.item[num12];
-					worldItem.stack = num11;
-					worldItem.shimmerTime = 1f;
-					worldItem.shimmered = true;
-					worldItem.shimmerWet = true;
-					worldItem.wet = true;
-					worldItem.velocity *= 0.1f;
-					worldItem.playerIndexTheItemIsReservedFor = Main.myPlayer;
-					if (flag)
-					{
-						worldItem.velocity.X = 1f * (float)num7;
-						worldItem.velocity.X *= 1f + (float)num7 * 0.05f;
-						if (num7 % 2 == 0)
-						{
-							worldItem.velocity.X *= -1f;
-						}
-					}
-					NetMessage.SendData(145, -1, -1, null, num12, 1f);
+					int num10 = Math.Min(num8, ContentSamples.ItemsByType[key].maxStack);
+					num8 -= num10;
+					SpawnShimmeredItem(num7++, key, num10);
 				}
 			}
 			stack -= num6 * recipe.createItem.stack;
@@ -1956,19 +1872,11 @@ public class WorldItem : Entity
 		shimmerWet = true;
 		wet = true;
 		velocity *= 0.1f;
-		if (Main.netMode == 0)
-		{
-			ShimmerEffect(base.Center);
-		}
-		else
-		{
-			NetMessage.SendData(146, -1, -1, null, 0, (int)base.Center.X, (int)base.Center.Y);
-			NetMessage.SendData(145, -1, -1, null, whoAmI, 1f);
-		}
+		ShimmerEffect(base.Center);
+		SyncItem();
 		AchievementsHelper.NotifyProgressionEvent(27);
 		if (stack == 0)
 		{
-			makeNPC = -1;
 			TurnToAir();
 		}
 	}

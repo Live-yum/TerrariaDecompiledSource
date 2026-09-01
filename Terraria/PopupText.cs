@@ -465,7 +465,7 @@ public class PopupText
 			Dust dust = Dust.NewDustPerfect(new Vector2(x, y), 306, new Vector2(0f, Main.rand.NextFloatDirection()), 0, somePopup.color, 2f);
 			dust.noGravity = true;
 			dust.noLight = true;
-			dust.noLightEmittence = true;
+			dust.noLightEmittance = true;
 			dust.velocity.Y += -2f;
 			dust.fadeIn = 1.4f * (1f + 0.4f * Main.rand.NextFloat());
 			dust.scale = 0.6f + 0.4f * Main.rand.NextFloat();
@@ -484,7 +484,7 @@ public class PopupText
 			float y2 = somePopup.position.Y + textHitbox.Y * (0.6f + 0.4f * (float)Math.Sin(num5 * (float)Math.PI));
 			Dust dust3 = Dust.NewDustPerfect(new Vector2(x2, y2), 306, new Vector2(0f, Main.rand.NextFloatDirection()), 0, somePopup.color, 2f);
 			dust3.noLight = true;
-			dust3.noLightEmittence = true;
+			dust3.noLightEmittance = true;
 			dust3.velocity.X = dust3.velocity.RotatedBy((float)Math.PI * 2f * Main.rand.NextFloatDirection()).X;
 			dust3.velocity.Y += -2f;
 			dust3.fadeIn = 2.4f * (1f + 0.4f * Main.rand.NextFloat());

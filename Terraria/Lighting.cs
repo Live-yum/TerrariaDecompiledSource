@@ -588,4 +588,9 @@ public class Lighting
 			slices[3] = color2 * GlobalBrightness;
 		}
 	}
+
+	internal static void AddGameplaySnapshotComponents()
+	{
+		NewEngine.AddGameplaySnapshotComponents();
+	}
 }

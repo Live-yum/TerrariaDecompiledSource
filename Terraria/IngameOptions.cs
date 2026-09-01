@@ -93,7 +93,7 @@ public static class IngameOptions
 
 	public static void Close()
 	{
-		Close(quiet: false);
+		Close(false);
 	}
 
 	public static void Close(bool quiet = false)
@@ -668,7 +668,7 @@ public static class IngameOptions
 			}
 			num14++;
 			string textValue2;
-			if (Player.Settings.HoverControl != Player.Settings.HoverControlMode.Hold)
+			if (Player.Settings.HoverControl != ButtonControlMode.Hold)
 			{
 				_ = 1;
 				textValue2 = Language.GetTextValue("UI.HoverControlSettingIsClick");
@@ -1506,7 +1506,7 @@ public static class IngameOptions
 		{
 			color = over;
 		}
-		Vector2 vector = Utils.DrawBorderString(sb, txt, anchor + offset * (1 + i), color, scale, 0.5f, 0.5f);
+		Vector2 vector = Utils.DrawBorderStringMeasured(sb, txt, anchor + offset * (1 + i), color, scale, 0.5f, 0.5f);
 		valuePosition = anchor + offset * (1 + i) + vector * new Vector2(0.5f, 0f);
 		bool flag = new Rectangle((int)anchor.X - (int)vector.X / 2, (int)anchor.Y + (int)(offset.Y * (float)(1 + i)) - (int)vector.Y / 2, (int)vector.X, (int)vector.Y).Contains(new Point(Main.mouseX, Main.mouseY));
 		if (!_canConsumeHover)

@@ -30,14 +30,13 @@ public class EquipmentLoadout : IFixLoadedData
 
 	public void Serialize(BinaryWriter writer)
 	{
-		ItemSerializationContext context = ItemSerializationContext.SavingAndLoading;
 		for (int i = 0; i < Armor.Length; i++)
 		{
-			Armor[i].Serialize(writer, context);
+			Armor[i].Serialize(writer, writeFavorite: true);
 		}
 		for (int j = 0; j < Dye.Length; j++)
 		{
-			Dye[j].Serialize(writer, context);
+			Dye[j].Serialize(writer, writeFavorite: true);
 		}
 		for (int k = 0; k < Hide.Length; k++)
 		{
@@ -47,14 +46,13 @@ public class EquipmentLoadout : IFixLoadedData
 
 	public void Deserialize(BinaryReader reader, int gameVersion)
 	{
-		ItemSerializationContext context = ItemSerializationContext.SavingAndLoading;
 		for (int i = 0; i < Armor.Length; i++)
 		{
-			Armor[i].DeserializeFrom(reader, context);
+			Armor[i].DeserializeFrom(reader, gameVersion >= 322);
 		}
 		for (int j = 0; j < Dye.Length; j++)
 		{
-			Dye[j].DeserializeFrom(reader, context);
+			Dye[j].DeserializeFrom(reader, gameVersion >= 322);
 		}
 		for (int k = 0; k < Hide.Length; k++)
 		{
@@ -104,5 +102,17 @@ public class EquipmentLoadout : IFixLoadedData
 			Dye[j].FixAgainstExploit();
 		}
 		Player.FixLoadedData_EliminiateDuplicateAccessories(Armor);
+	}
+
+	public void CopyVisuals(EquipmentLoadout other)
+	{
+		for (int i = 0; i < Armor.Length; i++)
+		{
+			Armor[i] = other.Armor[i].Clone();
+		}
+		for (int j = 0; j < Dye.Length; j++)
+		{
+			Dye[j] = other.Dye[j].Clone();
+		}
 	}
 }

@@ -35,19 +35,19 @@ public struct TileObject
 		}
 		if (tileData.HookPlaceOverride.hook != null)
 		{
-			int arg;
-			int arg2;
+			int x;
+			int y;
 			if (tileData.HookPlaceOverride.processedCoordinates)
 			{
-				arg = toBePlaced.xCoord;
-				arg2 = toBePlaced.yCoord;
+				x = toBePlaced.xCoord;
+				y = toBePlaced.yCoord;
 			}
 			else
 			{
-				arg = toBePlaced.xCoord + tileData.Origin.X;
-				arg2 = toBePlaced.yCoord + tileData.Origin.Y;
+				x = toBePlaced.xCoord + tileData.Origin.X;
+				y = toBePlaced.yCoord + tileData.Origin.Y;
 			}
-			if (tileData.HookPlaceOverride.hook(arg, arg2, toBePlaced.type, toBePlaced.style, 1, toBePlaced.alternate) == tileData.HookPlaceOverride.badReturn)
+			if (tileData.HookPlaceOverride.hook(x, y, toBePlaced.type, toBePlaced.style, 1, toBePlaced.alternate) == tileData.HookPlaceOverride.badReturn)
 			{
 				return false;
 			}
@@ -201,6 +201,7 @@ public struct TileObject
 		int num6 = 0;
 		TileObjectData tileObjectData = null;
 		int num7 = -1;
+		bool flag2 = false;
 		while (num7 < num3)
 		{
 			num7++;
@@ -338,26 +339,26 @@ public struct TileObject
 				for (int j = 0; j < tileData2.Height; j++)
 				{
 					Tile tileSafely = Framing.GetTileSafely(num8 + i, num9 + j);
-					bool flag2 = !tileData2.LiquidPlace(tileSafely);
-					bool flag3 = false;
+					bool flag3 = !tileData2.LiquidPlace(tileSafely);
+					bool flag4 = false;
 					if (tileData2.AnchorWall)
 					{
 						num25 += 1f;
 						if (!tileData2.isValidWallAnchor(tileSafely.wall))
 						{
-							flag3 = true;
+							flag4 = true;
 						}
 						else
 						{
 							num24 += 1f;
 						}
 					}
-					bool flag4 = false;
+					bool flag5 = false;
 					if (tileSafely.active() && (!Main.tileCut[tileSafely.type] || tileSafely.type == 484 || tileSafely.type == 654) && !TileID.Sets.BreakableWhenPlacing[tileSafely.type])
 					{
-						flag4 = true;
+						flag5 = true;
 					}
-					if (flag4 || flag2 || flag3)
+					if (flag5 || flag3 || flag4)
 					{
 						if (onlyCheck)
 						{
@@ -381,50 +382,50 @@ public struct TileObject
 				{
 					int num26 = anchorBottom.checkStart + k;
 					Tile tileSafely = Framing.GetTileSafely(num8 + num26, num9 + height);
-					bool flag5 = false;
+					bool flag6 = false;
 					if (tileSafely.nactive())
 					{
 						if ((anchorBottom.type & AnchorType.SolidTile) == AnchorType.SolidTile && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type] && !Main.tileNoAttach[tileSafely.type] && (tileData2.FlattenAnchors || tileSafely.blockType() == 0))
 						{
-							flag5 = tileData2.isValidTileAnchor(tileSafely.type);
+							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
 						}
-						if (!flag5 && ((anchorBottom.type & AnchorType.SolidWithTop) == AnchorType.SolidWithTop || (anchorBottom.type & AnchorType.Table) == AnchorType.Table))
+						if (!flag6 && ((anchorBottom.type & AnchorType.SolidWithTop) == AnchorType.SolidWithTop || (anchorBottom.type & AnchorType.Table) == AnchorType.Table))
 						{
 							if (TileID.Sets.Platforms[tileSafely.type])
 							{
 								_ = tileSafely.frameX / TileObjectData.PlatformFrameWidth();
 								if (!tileSafely.halfBrick() && WorldGen.PlatformProperTopFrame(tileSafely.frameX))
 								{
-									flag5 = true;
+									flag6 = true;
 								}
 							}
 							else if (Main.tileSolid[tileSafely.type] && Main.tileSolidTop[tileSafely.type])
 							{
-								flag5 = true;
+								flag6 = true;
 							}
 						}
-						if (!flag5 && (anchorBottom.type & AnchorType.Table) == AnchorType.Table && !TileID.Sets.Platforms[tileSafely.type] && Main.tileTable[tileSafely.type] && tileSafely.blockType() == 0)
+						if (!flag6 && (anchorBottom.type & AnchorType.Table) == AnchorType.Table && !TileID.Sets.Platforms[tileSafely.type] && Main.tileTable[tileSafely.type] && tileSafely.blockType() == 0)
 						{
-							flag5 = true;
+							flag6 = true;
 						}
-						if (!flag5 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
+						if (!flag6 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
 						{
 							int num27 = tileSafely.blockType();
 							if ((uint)(num27 - 4) <= 1u)
 							{
-								flag5 = tileData2.isValidTileAnchor(tileSafely.type);
+								flag6 = tileData2.isValidTileAnchor(tileSafely.type);
 							}
 						}
-						if (!flag5 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
+						if (!flag6 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
 						{
-							flag5 = true;
+							flag6 = true;
 						}
 					}
-					else if (!flag5 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
+					else if (!flag6 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
 					{
-						flag5 = true;
+						flag6 = true;
 					}
-					if (!flag5)
+					if (!flag6)
 					{
 						if (onlyCheck)
 						{
@@ -450,76 +451,76 @@ public struct TileObject
 					int num30 = -1;
 					int num31 = anchorBottom.checkStart + l;
 					Tile tileSafely = Framing.GetTileSafely(num8 + num31, num9 + num29);
-					bool flag6 = false;
+					bool flag7 = false;
 					if (tileSafely.nactive())
 					{
 						if (Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type] && !Main.tileNoAttach[tileSafely.type] && (tileData2.FlattenAnchors || tileSafely.blockType() == 0))
 						{
-							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
-							if (flag6)
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7)
 							{
 								num30 = 0;
 							}
 						}
-						if (!flag6 && (anchorBottom.type & AnchorType.SolidBottom) == AnchorType.SolidBottom && ((Main.tileSolid[tileSafely.type] && (!Main.tileSolidTop[tileSafely.type] || (TileID.Sets.Platforms[tileSafely.type] && (tileSafely.halfBrick() || tileSafely.topSlope())))) || tileSafely.halfBrick() || tileSafely.topSlope()) && !TileID.Sets.NotReallySolid[tileSafely.type] && !tileSafely.bottomSlope())
+						if (!flag7 && (anchorBottom.type & AnchorType.SolidBottom) == AnchorType.SolidBottom && ((Main.tileSolid[tileSafely.type] && (!Main.tileSolidTop[tileSafely.type] || (TileID.Sets.Platforms[tileSafely.type] && (tileSafely.halfBrick() || tileSafely.topSlope())))) || tileSafely.halfBrick() || tileSafely.topSlope()) && !TileID.Sets.NotReallySolid[tileSafely.type] && !tileSafely.bottomSlope())
 						{
-							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
-							if (flag6)
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7)
 							{
 								num30 = 0;
 							}
 						}
-						if (!flag6 && (anchorBottom.type & AnchorType.Platform) == AnchorType.Platform && TileID.Sets.Platforms[tileSafely.type])
+						if (!flag7 && (anchorBottom.type & AnchorType.Platform) == AnchorType.Platform && TileID.Sets.Platforms[tileSafely.type])
 						{
-							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
-							if (flag6)
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7)
 							{
 								num30 = ((!tileSafely.halfBrick() && !tileSafely.topSlope()) ? 8 : 0);
 							}
 						}
-						if (!flag6 && (anchorBottom.type & AnchorType.PlatformNonHammered) == AnchorType.PlatformNonHammered && TileID.Sets.Platforms[tileSafely.type] && tileSafely.slope() == 0 && !tileSafely.halfBrick())
+						if (!flag7 && (anchorBottom.type & AnchorType.PlatformNonHammered) == AnchorType.PlatformNonHammered && TileID.Sets.Platforms[tileSafely.type] && tileSafely.slope() == 0 && !tileSafely.halfBrick())
 						{
-							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
-							if (flag6)
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7)
 							{
 								num30 = 8;
 							}
 						}
-						if (!flag6 && (anchorBottom.type & AnchorType.PlanterBox) == AnchorType.PlanterBox && tileSafely.type == 380)
+						if (!flag7 && (anchorBottom.type & AnchorType.PlanterBox) == AnchorType.PlanterBox && tileSafely.type == 380)
 						{
-							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
-							if (flag6)
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7)
 							{
 								num30 = 0;
 							}
 						}
-						if (!flag6 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
+						if (!flag7 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
 						{
 							int num27 = tileSafely.blockType();
 							if ((uint)(num27 - 2) <= 1u)
 							{
-								flag6 = tileData2.isValidTileAnchor(tileSafely.type);
+								flag7 = tileData2.isValidTileAnchor(tileSafely.type);
 							}
-							if (flag6)
+							if (flag7)
 							{
 								num30 = 0;
 							}
 						}
-						if (!flag6 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
+						if (!flag7 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
 						{
-							flag6 = true;
-							if (flag6)
+							flag7 = true;
+							if (flag7)
 							{
 								num30 = 0;
 							}
 						}
 					}
-					else if (!flag6 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
+					else if (!flag7 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
 					{
-						flag6 = true;
+						flag7 = true;
 						num30 = 0;
 					}
-					if (flag6 && (anchorBottom.type & AnchorType.AllFlatHeight) == AnchorType.AllFlatHeight)
+					if (flag7 && (anchorBottom.type & AnchorType.AllFlatHeight) == AnchorType.AllFlatHeight)
 					{
 						if (num28 == -1)
 						{
@@ -527,10 +528,10 @@ public struct TileObject
 						}
 						if (num28 != num30)
 						{
-							flag6 = false;
+							flag7 = false;
 						}
 					}
-					if (!flag6)
+					if (!flag7)
 					{
 						if (onlyCheck)
 						{
@@ -554,24 +555,24 @@ public struct TileObject
 				{
 					int num32 = anchorBottom.checkStart + m;
 					Tile tileSafely = Framing.GetTileSafely(num8 + width, num9 + num32);
-					bool flag7 = false;
+					bool flag8 = false;
 					if (tileSafely.nactive())
 					{
 						if (Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type] && !Main.tileNoAttach[tileSafely.type] && (tileData2.FlattenAnchors || tileSafely.blockType() == 0))
 						{
-							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							flag8 = tileData2.isValidTileAnchor(tileSafely.type);
 						}
-						if (!flag7 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
+						if (!flag8 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
 						{
 							int num27 = tileSafely.blockType();
 							if (num27 == 2 || num27 == 4)
 							{
-								flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+								flag8 = tileData2.isValidTileAnchor(tileSafely.type);
 							}
 						}
-						if (!flag7 && (anchorBottom.type & AnchorType.Tree) == AnchorType.Tree && TileID.Sets.IsATreeTrunk[tileSafely.type])
+						if (!flag8 && (anchorBottom.type & AnchorType.Tree) == AnchorType.Tree && TileID.Sets.IsATreeTrunk[tileSafely.type])
 						{
-							flag7 = true;
+							flag8 = true;
 							if (m == 0)
 							{
 								num25 += 1f;
@@ -607,16 +608,16 @@ public struct TileObject
 								}
 							}
 						}
-						if (!flag7 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
+						if (!flag8 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
 						{
-							flag7 = true;
+							flag8 = true;
 						}
 					}
-					else if (!flag7 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
+					else if (!flag8 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
 					{
-						flag7 = true;
+						flag8 = true;
 					}
-					if (!flag7)
+					if (!flag8)
 					{
 						if (onlyCheck)
 						{
@@ -640,24 +641,24 @@ public struct TileObject
 				{
 					int num34 = anchorBottom.checkStart + n;
 					Tile tileSafely = Framing.GetTileSafely(num8 + num33, num9 + num34);
-					bool flag8 = false;
+					bool flag9 = false;
 					if (tileSafely.nactive())
 					{
 						if (Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type] && !Main.tileNoAttach[tileSafely.type] && (tileData2.FlattenAnchors || tileSafely.blockType() == 0))
 						{
-							flag8 = tileData2.isValidTileAnchor(tileSafely.type);
+							flag9 = tileData2.isValidTileAnchor(tileSafely.type);
 						}
-						if (!flag8 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
+						if (!flag9 && (anchorBottom.type & AnchorType.SolidSide) == AnchorType.SolidSide && Main.tileSolid[tileSafely.type] && !Main.tileSolidTop[tileSafely.type])
 						{
 							int num27 = tileSafely.blockType();
 							if (num27 == 3 || num27 == 5)
 							{
-								flag8 = tileData2.isValidTileAnchor(tileSafely.type);
+								flag9 = tileData2.isValidTileAnchor(tileSafely.type);
 							}
 						}
-						if (!flag8 && (anchorBottom.type & AnchorType.Tree) == AnchorType.Tree && TileID.Sets.IsATreeTrunk[tileSafely.type])
+						if (!flag9 && (anchorBottom.type & AnchorType.Tree) == AnchorType.Tree && TileID.Sets.IsATreeTrunk[tileSafely.type])
 						{
-							flag8 = true;
+							flag9 = true;
 							if (n == 0)
 							{
 								num25 += 1f;
@@ -693,16 +694,16 @@ public struct TileObject
 								}
 							}
 						}
-						if (!flag8 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
+						if (!flag9 && (anchorBottom.type & AnchorType.AlternateTile) == AnchorType.AlternateTile && tileData2.isValidAlternateAnchor(tileSafely.type))
 						{
-							flag8 = true;
+							flag9 = true;
 						}
 					}
-					else if (!flag8 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
+					else if (!flag9 && (anchorBottom.type & AnchorType.EmptyTile) == AnchorType.EmptyTile)
 					{
-						flag8 = true;
+						flag9 = true;
 					}
-					if (!flag8)
+					if (!flag9)
 					{
 						if (onlyCheck)
 						{
@@ -752,8 +753,9 @@ public struct TileObject
 				tileObjectData = tileData2;
 				break;
 			}
-			if (num35 > num4 || (num35 == num4 && num36 > num5))
+			if (!(num35 < 1f && flag2) && (num35 > num4 || (num35 == num4 && num36 > num5)))
 			{
+				flag2 = true;
 				TileObjectPreviewData.placementCache.CopyFrom(objectPreview);
 				num4 = num35;
 				num5 = num36;
@@ -768,7 +770,7 @@ public struct TileObject
 			{
 				TileObjectPreviewData.randomCache = new TileObjectPreviewData();
 			}
-			bool flag9 = false;
+			bool flag10 = false;
 			if (TileObjectPreviewData.randomCache.Type == type)
 			{
 				Point16 coordinates = TileObjectPreviewData.randomCache.Coordinates;
@@ -779,12 +781,12 @@ public struct TileObject
 				int num41 = y - tileData.Origin.Y;
 				if (num38 != num40 || num39 != num41)
 				{
-					flag9 = true;
+					flag10 = true;
 				}
 			}
 			else
 			{
-				flag9 = true;
+				flag10 = true;
 			}
 			int randomStyleRange = tileData.RandomStyleRange;
 			int num42 = Main.rand.Next(tileData.RandomStyleRange);
@@ -792,7 +794,7 @@ public struct TileObject
 			{
 				num42 = (forcedRandom.Value % randomStyleRange + randomStyleRange) % randomStyleRange;
 			}
-			num37 = ((!flag9 && !forcedRandom.HasValue) ? TileObjectPreviewData.randomCache.Random : num42);
+			num37 = ((!flag10 && !forcedRandom.HasValue) ? TileObjectPreviewData.randomCache.Random : num42);
 		}
 		if (tileData.SpecificRandomStyles != null)
 		{
@@ -800,7 +802,7 @@ public struct TileObject
 			{
 				TileObjectPreviewData.randomCache = new TileObjectPreviewData();
 			}
-			bool flag10 = false;
+			bool flag11 = false;
 			if (TileObjectPreviewData.randomCache.Type == type)
 			{
 				Point16 coordinates2 = TileObjectPreviewData.randomCache.Coordinates;
@@ -811,12 +813,12 @@ public struct TileObject
 				int num46 = y - tileData.Origin.Y;
 				if (num43 != num45 || num44 != num46)
 				{
-					flag10 = true;
+					flag11 = true;
 				}
 			}
 			else
 			{
-				flag10 = true;
+				flag11 = true;
 			}
 			int num47 = tileData.SpecificRandomStyles.Length;
 			int num48 = Main.rand.Next(num47);
@@ -824,7 +826,7 @@ public struct TileObject
 			{
 				num48 = (forcedRandom.Value % num47 + num47) % num47;
 			}
-			num37 = ((!flag10 && !forcedRandom.HasValue) ? TileObjectPreviewData.randomCache.Random : (tileData.SpecificRandomStyles[num48] - style));
+			num37 = ((!flag11 && !forcedRandom.HasValue) ? TileObjectPreviewData.randomCache.Random : (tileData.SpecificRandomStyles[num48] - style));
 		}
 		if (onlyCheck)
 		{

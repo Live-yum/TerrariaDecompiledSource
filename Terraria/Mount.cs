@@ -254,6 +254,8 @@ public class Mount
 
 		public bool CanUseWings;
 
+		public bool MovementStatsAreAdditive;
+
 		public Vector3 lightColor = Vector3.One;
 
 		public bool emitsLight;
@@ -578,6 +580,34 @@ public class Mount
 				return true;
 			}
 			return _data.CanUseWings;
+		}
+	}
+
+	public bool MovementStatsAreAdditive
+	{
+		get
+		{
+			if (_data == null || !_active)
+			{
+				return false;
+			}
+			return _data.MovementStatsAreAdditive;
+		}
+	}
+
+	public bool IsAtIdle
+	{
+		get
+		{
+			if (_data == null || !_active)
+			{
+				return false;
+			}
+			if (_data.idleFrameCount != 0)
+			{
+				return _idleTime >= _idleTimeNext;
+			}
+			return false;
 		}
 	}
 
@@ -1619,7 +1649,7 @@ public class Mount
 		mounts[14] = mountData;
 		mountData.spawnDust = 15;
 		mountData.buff = 193;
-		mountData.heightBoost = 8;
+		mountData.heightBoost = 6;
 		mountData.flightTimeMax = 0;
 		mountData.fallDamage = 0.2f;
 		mountData.runSpeed = 8f;
@@ -1638,7 +1668,7 @@ public class Mount
 		mountData.playerYOffsets = array;
 		mountData.xOffset = 4;
 		mountData.bodyFrame = 3;
-		mountData.yOffset = 9;
+		mountData.yOffset = 8;
 		mountData.playerHeadOffset = 10;
 		mountData.standingFrameCount = 1;
 		mountData.standingFrameDelay = 12;
@@ -2529,10 +2559,16 @@ public class Mount
 		SetAsRollerSkate(mountData, 381);
 		mountData = new MountData();
 		mounts[62] = mountData;
-		SetAsChillet(mountData, 387, TextureAssets.Extra[301]);
+		SetAsChillet(mountData, 387, TextureAssets.Extra[301], hardmode: false);
 		mountData = new MountData();
 		mounts[63] = mountData;
-		SetAsChillet(mountData, 388, TextureAssets.Extra[302]);
+		SetAsChillet(mountData, 388, TextureAssets.Extra[302], hardmode: false);
+		mountData = new MountData();
+		mounts[64] = mountData;
+		SetAsChillet(mountData, 391, TextureAssets.Extra[301], hardmode: true);
+		mountData = new MountData();
+		mounts[65] = mountData;
+		SetAsChillet(mountData, 392, TextureAssets.Extra[302], hardmode: true);
 	}
 
 	public static void SetAsRollerSkate(MountData newMount, int buff)
@@ -2541,11 +2577,12 @@ public class Mount
 		newMount.buff = buff;
 		newMount.CanRideMinecartTracks = true;
 		newMount.CanUseWings = true;
-		newMount.dashSpeed = 7.5f;
+		newMount.MovementStatsAreAdditive = true;
+		newMount.dashSpeed = 1f;
 		newMount.runSpeed = newMount.dashSpeed;
-		newMount.acceleration = 0.3f;
-		newMount.jumpHeight = 14;
-		newMount.jumpSpeed = 7f;
+		newMount.acceleration = 0.1f;
+		newMount.jumpHeight = 2;
+		newMount.jumpSpeed = 1f;
 		newMount.fallDamage = 1f;
 		newMount.blockExtraJumps = false;
 		newMount.totalFrames = 1;
@@ -2635,18 +2672,29 @@ public class Mount
 		}
 	}
 
-	public static void SetAsChillet(MountData newMount, int buff, Asset<Texture2D> texture)
+	public static void SetAsChillet(MountData newMount, int buff, Asset<Texture2D> texture, bool hardmode)
 	{
 		newMount.spawnDust = 15;
 		newMount.buff = buff;
 		newMount.heightBoost = 4;
 		newMount.flightTimeMax = 0;
 		newMount.fallDamage = 0.5f;
-		newMount.runSpeed = 3f;
-		newMount.dashSpeed = 9f;
-		newMount.acceleration = 0.32f;
-		newMount.jumpHeight = 8;
-		newMount.jumpSpeed = 8.01f;
+		if (hardmode)
+		{
+			newMount.runSpeed = 3f;
+			newMount.dashSpeed = 9f;
+			newMount.acceleration = 0.32f;
+			newMount.jumpHeight = 11;
+			newMount.jumpSpeed = 8.1f;
+		}
+		else
+		{
+			newMount.runSpeed = 3f;
+			newMount.dashSpeed = 6.5f;
+			newMount.acceleration = 0.32f;
+			newMount.jumpHeight = 6;
+			newMount.jumpSpeed = 8.01f;
+		}
 		newMount.walkingGraceTimeMax = 10;
 		newMount.totalFrames = 13;
 		int[] array = new int[newMount.totalFrames];
@@ -2952,7 +3000,12 @@ public class Mount
 		}
 		if (_type == 54)
 		{
-			((SelectiveFlyingMountData)_mountSpecificData).allowedToFly = mountedPlayer.wingsLogic > 0;
+			bool flag = mountedPlayer.wingsLogic > 0;
+			((SelectiveFlyingMountData)_mountSpecificData).allowedToFly = flag;
+			if (flag && mountedPlayer.empressBrooch)
+			{
+				_flyTime = mountedPlayer.wingTimeMax;
+			}
 		}
 		if (_type != 55)
 		{
@@ -3860,7 +3913,7 @@ public class Mount
 						dust5.noGravity = true;
 						if (_type == 47)
 						{
-							dust5.noLightEmittence = true;
+							dust5.noLightEmittance = true;
 						}
 						dust5.scale = 1f + Main.rand.NextFloat() * 0.8f;
 						dust5.fadeIn = Main.rand.NextFloat() * 2f;
@@ -4152,22 +4205,26 @@ public class Mount
 					{
 						_idleTimeNext = Main.rand.Next(120, 420);
 					}
+					if (_type == 62 || _type == 63 || _type == 64 || _type == 65)
+					{
+						_idleTimeNext = Main.rand.Next(900, 1500);
+					}
 				}
 				_idleTime++;
 			}
 			_frameCounter += 1f;
 			if (_data.idleFrameCount != 0 && _idleTime >= _idleTimeNext)
 			{
-				float num32 = _data.idleFrameDelay;
+				float num34 = _data.idleFrameDelay;
 				if (_type == 5)
 				{
-					num32 *= 2f - 1f * _fatigue / _fatigueMax;
+					num34 *= 2f - 1f * _fatigue / _fatigueMax;
 				}
 				int idleFrameCount = _data.idleFrameCount;
 				if (_type == 55)
 				{
-					int num33 = (int)(((float)_idleTime - (float)_idleTimeNext) / num32 / (float)idleFrameCount * (float)idleFrames_Rat.Length);
-					if (num33 >= idleFrames_Rat.Length)
+					int num35 = (int)(((float)_idleTime - (float)_idleTimeNext) / num34 / (float)idleFrameCount * (float)idleFrames_Rat.Length);
+					if (num35 >= idleFrames_Rat.Length)
 					{
 						_frameCounter = 0f;
 						_frame = _data.standingFrameStart;
@@ -4175,17 +4232,23 @@ public class Mount
 					}
 					else
 					{
-						_frame = _data.idleFrameStart + idleFrames_Rat[num33];
+						_frame = _data.idleFrameStart + idleFrames_Rat[num35];
 					}
 					break;
 				}
-				int num34 = (int)((float)(_idleTime - _idleTimeNext) / num32);
-				if (num34 >= idleFrameCount)
+				int num36 = (int)((float)(_idleTime - _idleTimeNext) / num34);
+				if (num36 >= idleFrameCount)
 				{
 					if (_data.idleFrameLoop)
 					{
 						_idleTime = _idleTimeNext;
 						_frame = _data.idleFrameStart;
+						if ((_type == 62 || _type == 63 || _type == 64 || _type == 65) && Main.rand.Next(20) == 0)
+						{
+							_frameCounter = 0f;
+							_frame = _data.standingFrameStart;
+							_idleTime = 0;
+						}
 					}
 					else
 					{
@@ -4196,7 +4259,7 @@ public class Mount
 				}
 				else
 				{
-					_frame = _data.idleFrameStart + num34;
+					_frame = _data.idleFrameStart + num36;
 					if (_data.idleFrameLoop)
 					{
 						if (_frame < _data.idleFrameStart || _frame >= _data.idleFrameStart + _data.idleFrameCount)
@@ -4289,20 +4352,20 @@ public class Mount
 		}
 		case 3:
 		{
-			float num35 = 1f;
+			float num32 = 1f;
 			if (_type == 56 || _type == 61)
 			{
-				num35 = MathHelper.Clamp(velocity.Length() * 0.5f, 1f, 2f);
+				num32 = MathHelper.Clamp(velocity.Length() * 0.5f, 1f, 2f);
 			}
-			_frameCounter += num35;
-			int num36 = _data.flyingFrameDelay;
+			_frameCounter += num32;
+			int num33 = _data.flyingFrameDelay;
 			if (Type == 54 && _flyTime > 0)
 			{
-				num36 -= 2;
+				num33 -= 2;
 			}
-			if (_frameCounter > (float)num36)
+			if (_frameCounter > (float)num33)
 			{
-				_frameCounter -= num36;
+				_frameCounter -= num33;
 				_frame++;
 			}
 			if (_frame < _data.flyingFrameStart || _frame >= _data.flyingFrameStart + _data.flyingFrameCount)
@@ -4329,7 +4392,7 @@ public class Mount
 			{
 				_frame = _data.inAirFrameStart;
 			}
-			if (_type == 62 || _type == 63)
+			if (_type == 62 || _type == 63 || _type == 64 || _type == 65)
 			{
 				int num28 = _data.inAirFrameDelay - 1;
 				if (frame < 4)
@@ -4476,7 +4539,7 @@ public class Mount
 			break;
 		}
 		}
-		if ((_type == 62 || _type == 63) && mountedPlayer.dashDelay < 0 && mountedPlayer.dashDelay >= -5)
+		if ((_type == 62 || _type == 63 || _type == 64 || _type == 65) && mountedPlayer.dashDelay < 0 && mountedPlayer.dashDelay >= -5)
 		{
 			_frame = 5;
 		}
@@ -4503,7 +4566,7 @@ public class Mount
 
 	public void TryBeginningFlight(Player mountedPlayer, int state)
 	{
-		if (_frameState == state || (state != 2 && state != 3) || !CanHover() || mountedPlayer.controlUp || mountedPlayer.controlDown || mountedPlayer.controlJump)
+		if (_frameState == state || mountedPlayer.tongued || (state != 2 && state != 3) || !CanHover() || mountedPlayer.controlUp || mountedPlayer.controlDown || mountedPlayer.controlJump)
 		{
 			return;
 		}
@@ -4796,6 +4859,8 @@ public class Mount
 		{
 		case 62:
 		case 63:
+		case 64:
+		case 65:
 			mountedPlayer.meleeDamage += 0.1f;
 			mountedPlayer.rangedDamage += 0.1f;
 			mountedPlayer.magicDamage += 0.1f;
@@ -4816,7 +4881,7 @@ public class Mount
 					dust3.velocity = vector11.DirectionTo(dust3.position) * 0.2f;
 				}
 				dust3.fadeIn = 0.3f;
-				dust3.noLightEmittence = true;
+				dust3.noLightEmittance = true;
 				dust3.customData = mountedPlayer;
 				dust3.shader = GameShaders.Armor.GetSecondaryShader(mountedPlayer.cMount, mountedPlayer);
 			}
@@ -4840,7 +4905,7 @@ public class Mount
 					Dust dust4 = Dust.NewDustPerfect(pos4 + spinningpoint, 43, Vector2.Zero, 254, new Color(255, 255, 0, 255), 0.3f);
 					dust4.velocity = spinningpoint * 0.025f + pos5.DirectionTo(dust4.position) * 0.5f;
 					dust4.fadeIn = 0.3f;
-					dust4.noLightEmittence = true;
+					dust4.noLightEmittance = true;
 					dust4.shader = GameShaders.Armor.GetSecondaryShader(mountedPlayer.cMount, mountedPlayer);
 				}
 			}
@@ -5697,6 +5762,8 @@ public class Mount
 			break;
 		case 62:
 		case 63:
+		case 64:
+		case 65:
 			num3 = _frame;
 			if (num3 < 4 && drawPlayer.petting.isPetting && drawPlayer.petting.mount)
 			{
@@ -6061,7 +6128,7 @@ public class Mount
 			break;
 		}
 		}
-		if (_type == 62 || _type == 63)
+		if (Main.myPlayer == drawPlayer.whoAmI && (_type == 62 || _type == 63 || _type == 64 || _type == 65))
 		{
 			TryPettingMount(drawPlayer);
 		}
@@ -6082,27 +6149,42 @@ public class Mount
 		}
 		else
 			_ = 0;
-		if (num)
+		if (!num)
 		{
-			if (flag)
+			return;
+		}
+		if (flag)
+		{
+			player.noThrow = 4;
+			player.cursorItemIconEnabled = true;
+			switch (_type)
 			{
-				player.noThrow = 4;
-				player.cursorItemIconEnabled = true;
-				player.cursorItemIconID = ((_type == 63) ? 5666 : 5665);
+			case 62:
+				player.cursorItemIconID = 5665;
+				break;
+			case 63:
+				player.cursorItemIconID = 5666;
+				break;
+			case 64:
+				player.cursorItemIconID = 6150;
+				break;
+			case 65:
+				player.cursorItemIconID = 6151;
+				break;
 			}
-			if (PlayerInput.UsingGamepad)
-			{
-				player.GamepadEnableGrappleCooldown();
-			}
-			if (Main.mouseRight && Main.mouseRightRelease && Player.BlockInteractionWithProjectiles == 0)
-			{
-				Main.mouseRightRelease = false;
-				player.tileInteractAttempted = true;
-				player.tileInteractionHappened = true;
-				player.releaseUseTile = false;
-				player.PetMount(new PlayerPettingInfo(_type, isPetSmall: false));
-				EmoteBubble.NewBubble(0, new WorldUIAnchor(Main.LocalPlayer), 60);
-			}
+		}
+		if (PlayerInput.UsingGamepad)
+		{
+			player.GamepadEnableGrappleCooldown();
+		}
+		if (Main.mouseRight && Main.mouseRightRelease && Player.BlockInteractionWithProjectiles == 0)
+		{
+			Main.mouseRightRelease = false;
+			player.tileInteractAttempted = true;
+			player.tileInteractionHappened = true;
+			player.releaseUseTile = false;
+			player.PetMount(new PlayerPettingInfo(_type, isPetSmall: false));
+			EmoteBubble.NewBubble(0, new WorldUIAnchor(Main.LocalPlayer), 60);
 		}
 	}
 
@@ -6264,7 +6346,7 @@ public class Mount
 			mountedPlayer.fullRotationOrigin = new Vector2(mountedPlayer.width / 2, mountedPlayer.height / 2);
 		}
 		int type = _type;
-		if ((uint)(type - 62) <= 1u)
+		if ((uint)(type - 62) <= 3u)
 		{
 			SoundEngine.PlaySound(SoundID.PalChillet, mountedPlayer.Center);
 		}
@@ -6280,10 +6362,24 @@ public class Mount
 		{
 			_mountSpecificData = new SelectiveFlyingMountData();
 		}
+		FinalizeMountData(m, mountedPlayer);
 		DoSpawnDust(mountedPlayer, isDismounting: false);
 		if (_type == 38 && mountedPlayer.whoAmI == Main.myPlayer)
 		{
 			AchievementsHelper.NotifyProgressionEvent(32);
+		}
+	}
+
+	public void FinalizeMountData(int m, Player mountedPlayer)
+	{
+		if (_type == 8 && mountedPlayer.isDisplayDollOrInanimate)
+		{
+			float diodeRotation = 0f;
+			if (mountedPlayer.direction == -1)
+			{
+				diodeRotation = (float)Math.PI;
+			}
+			((DrillMountData)_mountSpecificData).diodeRotation = diodeRotation;
 		}
 	}
 
@@ -6369,7 +6465,7 @@ public class Mount
 			}
 			return;
 		}
-		if (_type == 62 || _type == 63)
+		if (_type == 62 || _type == 63 || _type == 64 || _type == 65)
 		{
 			for (int j = 0; j < 100; j++)
 			{
@@ -6472,7 +6568,7 @@ public class Mount
 				obj.velocity *= 0.8f;
 				obj.velocity.Y *= 0.75f;
 				obj.velocity.Y += mountedPlayer.gravDir * 0.25f;
-				obj.noLightEmittence = true;
+				obj.noLightEmittance = true;
 				obj.noGravity = true;
 			}
 			if (_type == 56)

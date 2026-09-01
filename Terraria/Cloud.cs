@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
+using Terraria.ID;
 using Terraria.Utilities;
 
 namespace Terraria;
@@ -186,7 +187,7 @@ public class Cloud
 		bool flag = false;
 		while (!flag)
 		{
-			num = ((!Main.tenthAnniversaryWorld) ? rand.Next(22, 41) : rand.Next(22, 37));
+			num = ((!Main.tenthAnniversaryWorld) ? CloudID.Sets.RareClouds_Normal[rand.Next(CloudID.Sets.RareClouds_Normal.Count)] : CloudID.Sets.RareClouds_Celebration[rand.Next(CloudID.Sets.RareClouds_Celebration.Count)]);
 			switch (num)
 			{
 			default:
@@ -204,6 +205,7 @@ public class Cloud
 				break;
 			case 30:
 			case 35:
+			case 41:
 				flag = Main.hardMode;
 				break;
 			case 28:

@@ -2,6 +2,11 @@ namespace Terraria;
 
 public static class NewProjectileModifiers
 {
+	public static void HardmodeDungeonSkeletonShot(Projectile projectile)
+	{
+		projectile.timeLeft = 300;
+	}
+
 	public static void RainHazard(Projectile projectile)
 	{
 		projectile.netImportant = true;

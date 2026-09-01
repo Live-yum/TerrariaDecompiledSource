@@ -23,7 +23,7 @@
 		"DOWN": "하단"
 	},
 	"Language": {
-		"English": "English",
+		"English": "English(영어)",
 		"Spanish": "Español(스페인어)",
 		"French": "Français(프랑스어)",
 		"Italian": "Italiano(이탈리아어)",
@@ -33,8 +33,8 @@
 		"German": "Deutsch(독일어)",
 		"Polish": "Polski(폴란드어)",
 		"Korean": "한국어",
-		"ChineseTraditional": "繁體中文",
-		"Japanese": "日本語"
+		"ChineseTraditional": "繁體中文(중국어 번체)",
+		"Japanese": "日本語(일어)"
 	},
 	"CLI": {
 		"Server": "테라리아 서버 {0}",
@@ -252,6 +252,9 @@
 		"WorldCreationNumberOfWorlds": "세계의 개수:",
 		"WorldCreationNumberOfWorldsDescription": "한 번에 생성 가능한 세계의 개수",
 		"ItemCannotBePlacedInsideItself": "자기 안에 둘 수 없습니다",
+		"ItemLoadoutShared": "다른 로드아웃과 공유됨",
+		"ItemLoadoutShareHint": "{InputTriggerUI_FavoriteItem}을(를) 눌러 로드아웃 간 공유",
+		"ItemLoadoutSharedFrom": "로드아웃 {0}와(과) 공유됨",
 		"WorldDescriptionName": "세계의 이름을 지으세요! 신중하게 결정하세요. 나중에 바꿀 수 없습니다!",
 		"WorldDescriptionSeed": "세계의 형태와 특성을 규정하는 DNA.",
 		"WorldDescriptionSizeSmall": "짧은 1인 플레이에 적합.",
@@ -306,6 +309,7 @@
 		"Loadout3": "로드아웃3",
 		"ToggleCameraMode": "카메라 모드",
 		"GamepadLoadout": "로드아웃 변경",
+		"LoadoutShare": "로드아웃 공유",
 		"IssueReporterHasThingsToShow": "문제 보기",
 		"AutoReuseAllOn": "자동 발사: 켜기",
 		"AutoReuseAllOff": "자동 발사: 끄기",
@@ -398,9 +402,71 @@
 		"WorldNewlyGenerated": "신규",
 		"WorldHasBeenPlayed": "플레이함",
 		"SwitchPage": "페이지 전환",
-		"HousingAssign": "#NAME?",
-		"HousingEvict": "#NAME?",
-		"HousingAim": "조준"
+		"HousingAssign": "{0} 배정",
+		"HousingEvict": "{0} 퇴거",
+		"HousingAim": "조준",
+		"PortraitsDetailed": "초상화 스타일: 상세함",
+		"PortraitsCloseUp": "초상화 스타일: 프로필",
+		"PortraitsFullBody": "초상화 스타일: 레트로",
+		"PortraitsDisabled": "초상화 스타일: 비활성화",
+		"FlashyEffectsWorldOn": "천둥 효과: 켜짐",
+		"FlashyEffectsWorldOff": "천둥 효과: 감소",
+		"FlashyEffectsInterfaceOn": "인벤토리 효과: 켜짐",
+		"FlashyEffectsInterfaceOff": "인벤토리 효과: 감소",
+		"PlayWhenUnfocusedOn": "창 비활성화 때 일시 정지: 꺼짐",
+		"PlayWhenUnfocusedOff": "창 비활성화 때 일시 정지: 켜짐",
+		"DoubleTapDash": "두 번 탭하여 질주",
+		"Dash": "질주",
+		"ToggleClassicGrid": "제작 창 스타일 ",
+		"PreviousLoadout": "이전 로드아웃",
+		"NextLoadout": "다음 로드아웃",
+		"ArmorSetAbility": "방어구 세트 능력",
+		"PanControlMode": "전방 줌",
+		"PanControlMode_OnAlways": "항상 켜짐",
+		"PanControlMode_OffAlways": "항상 꺼짐",
+		"PanControlMode_Click": "클릭하여 전환",
+		"PanControlMode_Hold": "길게 눌러 사용",
+		"LookAheadGamepadInstruction": "줌",
+		"Digtoise": "드릴북이"
+	},
+	"SecretSeedDescription": {
+		"paintEverythingGray": "귀찮은 색상들은 다 집어치우고, 더 단순했던 시절로 돌아가 보세요! (월드가 회색으로 칠해짐)",
+		"paintEverythingNegative": "취소, 반전시킬래요. (월드가 반전 색상으로 칠해짐)",
+		"coatEverythingEcho": "눈앞에 숨겨진 비밀. (월드에 에코 코팅이 적용됨)",
+		"coatEverythingIlluminant": "여긴 왜 이렇게 눈이 부시지? (월드에 발광 코팅이 적용됨)",
+		"noSurface": "바깥세상은 너무 과대평가되었어... (월드에 지표면 층이 없음)",
+		"extraLivingTrees": "행복한 작은 나무보다 더 좋은 게 뭘까요? 살아있는 거목들이죠! (월드에 훨씬 더 커진 살아있는 나무들이 추가됨)",
+		"extraFloatingIslands": "당신은 항상 뜬구름을 잡고 있었죠. (월드에 하늘섬이 추가로 생성됨)",
+		"errorWorld": "개와 고양이가 같이 살다니. 아수라장이 따로 없군요! (오류 월드)",
+		"graveyardBloodmoonStart": "클라투 베라타... 넥타이! (월드가 묘지로 가득 차고, 블러드 문 상태로 시작함)",
+		"surfaceIsInSpace": "우주에서는 아무도 당신의 비명을 들을 수 없습니다. (지표면 층이 더 높아짐)",
+		"rainsForAYear": "더 큰 배가 필요할 거예요. (월드에 비가 끊임없이 내림)",
+		"biggerAbandonedHouses": "대체 어떤 잃어버린 문명이 이 모든 걸 지은 걸까요? (월드에 더 큰 지하 오두막이 생성됨)",
+		"randomSpawn": "여긴 도대체 어디야? (시작 스폰 지점이 무작위 위치로 지정됨)",
+		"addTeleporters": "걷는 건 패배자나 하는 거지. (월드 곳곳에 텔레포터가 있음)",
+		"startInHardmode": "그래, 고통의 길을 택하겠다 이건가... (월드가 하드모드에서 시작됨)",
+		"noInfection": "드디어 치료제를 찾아냈어요! (월드가 오염지대나 진홍지대 없이 시작됨)",
+		"hallowOnTheSurface": "무지개, 새끼 고양이, 그리고 죽음. (월드의 지표면이 신성한 지대로 이루어짐)",
+		"worldIsInfected": "이제야 진짜 멋진 곳에 온 것 같네요! (월드 전체가 오염지대나 진홍지대로 오염됨)",
+		"surfaceIsMushrooms": "트러플은 정말 재미있는 친구라지. (월드의 지표면이 버섯 지대로 이루어짐)",
+		"surfaceIsDesert": "물기가 쏙 빠진 해변 같은 느낌. (월드의 지표면이 사막으로 이루어짐)",
+		"pooEverywhere": "6번 통로, 청소해 주세요! (월드가 응가 블록으로 뒤덮임)",
+		"noSpiderCaves": "다리가 여덟 개라니, 너무 많잖아. (월드에 거미 동굴이 생성되지 않음)",
+		"actuallyNoTraps": "아니, 진심이라고요. 이번엔 정말 진심이에요, 약속해요! (월드에 함정이 전혀 없음)",
+		"rainbowStuff": "ROY G BIV가 다녀갔어요. (월드에 온갖 무지개 블록 등이 가득함)",
+		"digExtraHoles": "발조심하세요! (월드에 깊은 틈과 구덩이가 추가로 생성됨)",
+		"roundLandmasses": "어머, 마치 조그마한 아기 행성들 같네! (월드가 작은 소행성들로 이루어짐)",
+		"extraLiquid": "아틀란티스를 찾는 여정이 시작됩니다! (월드가 물에 잠김)",
+		"portalGunInChests": "테스트 결과 발표: '당신은 끔찍한 사람이에요.' (모든 상자에서 포탈 건이 나올 수 있음)",
+		"worldIsFrozen": "어떤 사람들은 언제나 오르막길에서 아이스 스케이트를 타려고 하죠... (월드가 눈과 얼음으로 이루어짐)",
+		"halloweenGen": "이제 옥수수 미로만 있으면 완벽할 텐데요. (월드에 호박이 배치된 채로 시작됨)",
+		"endlessHalloween": "트릭 오어 트릿! (할로윈 이벤트가 항상 활성화됨)",
+		"endlessChristmas": "트리 아래에 뭐가 있는지 볼까요... (크리스마스 이벤트가 항상 활성화됨)",
+		"vampirism": "SPF 9000짜리 자외선 차단제가 필요할 거예요. (플레이어가 흡혈귀가 됨. 태양을 무조건 피하세요)",
+		"teamBasedSpawns": "우리 땅에 왜 왔니, 왜 왔니, 왜 왔니! (플레이어 스폰 위치가 팀 색상에 따라 고정됨)",
+		"dualDungeons": "던전 하나를 사면 하나가 공짜! (던전 탐험의 경험)",
+		"moreLightning": "제우스가 단단히 화가 났습니다 (번개 발생 빈도 증가)",
+		"noLightning": "제우스의 화가 풀렸습니다 (번개 비활성화)"
 	},
 	"CaptureBiomeChoice": {
 		"0": "자동",
@@ -516,13 +582,8 @@
 		"OtherResourcePacksDescription": "다른 목적을 가진 리소스 팩입니다. 정말 수상하네요!"
 	},
 	"Net": {
-		"ClientStatusComplete": "({0}) {1} {2}: 완료!",
 		"ClientConnecting": "{0}이(가) 연결 중...",
-		"ClientSendingData": "({0}) {1}이(가) 플레이어 데이터 전송 중...",
-		"ClientRequestedWorldInfo": "({0}) {1}이(가) 세계 정보 요청",
-		"ClientPlaying": "({0}) {1}이(가) 플레이 중",
-		"WaitingForClients": "클라이언트 접속 대기중...",
-		"ClientsConnected": "{0}명의 클라이언트 접속함",
+		"ClientLostConnection": "{0}의 연결이 끊어졌습니다...",
 		"CheatingProjectileSpam": "부정 행위 시도 감지: 부정한 방법으로 투사체 생성",
 		"CheatingTileSpam": "부정 행위 시도 감지: 부정한 방법으로 타일 추가",
 		"CheatingTileRemovalSpam": "부정 행위 시도 감지: 부정한 방법으로 타일 제거",
@@ -531,7 +592,6 @@
 		"ServerAutoShutdown": "로컬 플레이어가 나감. 자동 종료 시작.",
 		"ServerSavingOnExit": "종료 전에 저장하는 중...",
 		"ConnectingTo": "{0}에 접속",
-		"IsReceivingTileData": "타일 데이터 받는 중",
 		"LostConnection": "연결 끊김",
 		"FoundServer": "서버 발견",
 		"SendingPlayerData": "플레이어 데이터 전송 중...",
@@ -547,7 +607,8 @@
 		"CannotTeleportToPylonBecauseNotEnoughNPCsAtCurrentPylon": "현재 파일런 근처에 살고 있는 주민이 충분하지 않습니다",
 		"CannotTeleportToPylonBecauseThereIsDanger": "현재의 위협을 물리치고 파일런 망을 사용하세요!",
 		"CannotTeleportToPylonBecauseNotMeetingBiomeRequirements": "파일런이 잘못된 지형에 있어 사용할 수 없습니다",
-		"CannotTeleportToPylonBecauseAccessingLihzahrdTempleEarly": "고대의 힘이 이곳에 접근하는 것을 막고 있습니다..."
+		"CannotTeleportToPylonBecauseAccessingLihzahrdTempleEarly": "고대의 힘이 이곳에 접근하는 것을 막고 있습니다...",
+		"SteamHostOnlyAllowsFriends": "호스트의 Steam 친구만 이 서버에 입장할 수 있습니다"
 	},
 	"GameUI": {
 		"Storm": "스톰",
@@ -684,7 +745,11 @@
 		"SuperCartEnabled": "광산 수레: 고속",
 		"SuperCartDisabled": "광산 수레: 보통",
 		"BannersWindow": "배너 창",
-		"BannersTitle": "배너"
+		"BannersTitle": "배너",
+		"ScreenShake": "화면 흔들림: {0}",
+		"CraftingWindowClassic": "클래식 제작 창",
+		"CraftingWindowClassicTip": "클래식 제작 창\n{InputTrigger_InteractWithTileUI}(으)로 스타일 전환",
+		"CraftingWindowTip": "제작 창\n{InputTrigger_InteractWithTileUI}(으)로 스타일 전환"
 	},
 	"Controls": {
 		"LeftClick": "좌클릭",
@@ -763,7 +828,8 @@
 		"BallBounceResultGolf_Single": "{0} 님이 {1}을(를) 한 번에 넣었습니다!",
 		"BallBounceResultGolf_Plural": "{0} 님이 {2}번만에 {1}을(를) 넣었습니다!",
 		"DarknessDanger": "너무나 깜깜합니다. 왠지 몰라도 위험합니다...",
-		"DarknessSafe": "위험한 어둠을 통과했습니다."
+		"DarknessSafe": "위험한 어둠을 통과했습니다.",
+		"RespawnSkip": "{InputTrigger_Jump}(으)로 건너뛰기"
 	},
 	"Enemies": {
 		"TheTwins": "쌍둥이",
@@ -863,6 +929,7 @@
 		"Suffocated_1": "{0} 님이 숨을 쉬지 못했습니다.",
 		"Suffocated_2": "{0} 님이 산 채로 묻혔습니다.",
 		"Poisoned": "{0} 님이 해독제를 찾지 못했습니다.",
+		"Spored": "{0}이(가) 포자에 잠식당했습니다",
 		"Burned_1": "{0} 님이 불을 끄지 못했습니다.",
 		"Burned_2": "{0} 님이 목탄으로 변했습니다.",
 		"Burned_3": "{0} 님이 완전히 타버렸습니다.",
@@ -973,7 +1040,8 @@
 		"Gold": "금",
 		"Silver": "은",
 		"Copper": "동",
-		"DefenderMedals": "수호자 메달"
+		"DefenderMedals": "수호자 메달",
+		"DefenderMedals_PriceText": "수호자 메달"
 	},
 	"Achievements": {
 		"ChallengerCategory": "도전자",
@@ -3698,6 +3766,9 @@
 		"ru-RU_6": "Shuki0",
 		"ru-RU_7": "SLava_66",
 		"ru-RU_8": "da_karakum",
+		"ru-RU-9": "Anasu Meruku",
+		"Andy-Bold-Cyrillic-1": "Alexey “Alex Great” Artomonov",
+		"Andy-Bold-Cyrillic-2": "Pavel “Zloy Wolf” Grishaev",
 		"zh-Hans_1": "Wynn “westgrass” Chen"
 	},
 	"CreditsRollCategory_SpecialThanksto": {
@@ -3728,6 +3799,7 @@
 		"Reddit": "Reddit",
 		"Instagram": "Instagram",
 		"Twitter": "Twitter",
+		"Bluesky": "Bluesky",
 		"Forums": "포럼",
 		"Merch": "상점",
 		"Wiki": "Wiki"

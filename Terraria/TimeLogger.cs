@@ -7,8 +7,10 @@ using System.Text;
 using Microsoft.Xna.Framework;
 using ReLogic.OS;
 using Terraria.GameContent;
+using Terraria.GameContent.Drawing;
 using Terraria.GameInput;
 using Terraria.Testing;
+using Terraria.UI.Chat;
 
 namespace Terraria;
 
@@ -189,7 +191,7 @@ public static class TimeLogger
 			_minValue = minValue;
 			_rounding = rounding;
 			_strings = new string[(int)((maxValue - minValue) / rounding) + 1];
-			_nullString = string.Format(_format, (object?)null);
+			_nullString = string.Format(_format, (object)null);
 		}
 
 		public string Format(double value)
@@ -359,7 +361,7 @@ public static class TimeLogger
 
 	public static TimeLogData Overlays;
 
-	public static TimeLogData FiltersAndPostDraw;
+	public static TimeLogData Filters;
 
 	public static TimeLogData SunVisibility;
 
@@ -371,11 +373,35 @@ public static class TimeLogger
 
 	public static TimeLogData GCPause;
 
+	public static TimeLogData TotalUpdate;
+
+	public static TimeLogData UpdatesInWorld;
+
+	public static TimeLogData UpdatePlayers;
+
+	public static TimeLogData SpawnNPCs;
+
+	public static TimeLogData UpdateNPCs;
+
+	public static TimeLogData UpdateProjectiles;
+
+	public static TimeLogData UpdateItems;
+
+	public static TimeLogData UpdateDust;
+
+	public static TimeLogData UpdateGore;
+
+	public static TimeLogData UpdateWorld;
+
+	public static TimeLogData UpdateTime;
+
+	public static TimeLogData UpdateLeashedEntities;
+
+	public static TimeLogData UpdateFloatingText;
+
 	private static Queue<Action> _onNextFrame;
 
 	public static int ABTestMode;
-
-	public static bool ABTestFlag;
 
 	public static readonly string ABTestName;
 
@@ -384,6 +410,10 @@ public static class TimeLogger
 	private static int ColumnSpacing;
 
 	private static int DrawnEntryNumber;
+
+	private static readonly uint DrawLayer_Background;
+
+	private static readonly uint DrawLayer_Text;
 
 	private static Queue<TimeLogData> _entriesToDraw;
 
@@ -404,6 +434,18 @@ public static class TimeLogger
 	private static FormatPool _msFormat;
 
 	private static FormatPool _intFormat;
+
+	public static bool ABTestFlag
+	{
+		get
+		{
+			return TileDrawingBase.DrawOwnBlacks;
+		}
+		set
+		{
+			TileDrawingBase.DrawOwnBlacks = value;
+		}
+	}
 
 	private static TimeLogData NewEntry(string name, TimeSpan? budget = null)
 	{
@@ -463,8 +505,8 @@ public static class TimeLogger
 		RenderUndergroundBackground = NewEntry("Render Underground Bg", TimeSpan.FromMilliseconds(3.0));
 		RenderBackgroundLiquid = NewEntry("Render Bg Water Tiles", TimeSpan.FromMilliseconds(3.0));
 		RenderLiquid = NewEntry("Render Water Tiles", TimeSpan.FromMilliseconds(3.0));
-		TotalDrawRenderNow = NewEntry("Total Draw, Render Now", TimeSpan.FromMilliseconds(16.0));
-		TotalDraw = NewEntry("Total Draw", TimeSpan.FromMilliseconds(16.0));
+		TotalDrawRenderNow = NewEntry("Total Draw, Render Now", TimeSpan.FromMilliseconds(12.0));
+		TotalDraw = NewEntry("Total Draw", TimeSpan.FromMilliseconds(12.0));
 		Lighting = NewEntry("Lighting");
 		LightingInit = NewEntry("Lighting Init");
 		FindPaintedTiles = NewEntry("Find Painted Tiles");
@@ -494,17 +536,32 @@ public static class TimeLogger
 		DrawFPSGraph = NewEntry("Draw FPS Graph");
 		DrawTimeLogger = NewEntry("Draw Render Timings");
 		Overlays = NewEntry("Overlays");
-		FiltersAndPostDraw = NewEntry("Filters & PostDraw");
+		Filters = NewEntry("Screen Filters/Blit");
 		SunVisibility = NewEntry("Sun Visibility");
 		MenuDrawTime = NewEntry("Menu");
 		SplashDrawTime = NewEntry("Splash");
 		DrawFullscreenMap = NewEntry("Full Screen Map");
 		GCPause = NewEntry("GC Pause", TimeSpan.FromMilliseconds(1.0));
+		TotalUpdate = NewEntry("Total Update", TimeSpan.FromMilliseconds(4.0));
+		UpdatesInWorld = NewEntry("Updates in World", TimeSpan.FromMilliseconds(4.0));
+		UpdatePlayers = NewEntry("Update Players");
+		SpawnNPCs = NewEntry("Spawn NPCs");
+		UpdateNPCs = NewEntry("Update NPCs");
+		UpdateProjectiles = NewEntry("Update Projectiles");
+		UpdateItems = NewEntry("Update Items");
+		UpdateDust = NewEntry("Update Dust");
+		UpdateGore = NewEntry("Update Gore");
+		UpdateWorld = NewEntry("Update World (tiles)");
+		UpdateTime = NewEntry("Update Time");
+		UpdateLeashedEntities = NewEntry("Update Leashed Entities");
+		UpdateFloatingText = NewEntry("Update Floating Text");
 		_onNextFrame = new Queue<Action>();
 		ABTestMode = (ABTestFlag ? 1 : 0);
-		ABTestName = "Also Baseline";
+		ABTestName = "New Draw Blacks";
 		ColumnSpacing = 220;
 		DrawnEntryNumber = 0;
+		DrawLayer_Background = 0u;
+		DrawLayer_Text = 1u;
 		_entriesToDraw = new Queue<TimeLogData>();
 		_PinnedCPUFormat = new FormatPool("Pinned to CPU #{0}", 64.0);
 		_AssignedCPUFormat = new FormatPool("Assigned CPU #{0}", 64.0);
@@ -573,9 +630,7 @@ public static class TimeLogger
 		{
 			startLoggingNextFrame = false;
 			_ = DateTime.Now;
-			string savePath = Main.SavePath;
-			char directorySeparatorChar = Path.DirectorySeparatorChar;
-			string path = savePath + directorySeparatorChar + "TerrariaDrawLog.7z";
+			string path = Main.SavePath + Path.DirectorySeparatorChar + "TerrariaDrawLog.7z";
 			try
 			{
 				logWriter = new StreamWriter(new GZipStream(new FileStream(path, FileMode.Create), CompressionMode.Compress));
@@ -682,7 +737,8 @@ public static class TimeLogger
 		}
 		int num = 100;
 		TableWidth = ((DataSeriesHeaders[1] != null) ? 900 : 440);
-		Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(0, num, TableWidth, 800), new Color(60, 60, 60, 80));
+		Main.tileBatch.SetLayer(DrawLayer_Background, 0);
+		Main.tileBatch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(0, num, TableWidth, 800), new Color(60, 60, 60, 80));
 		DrawString("Render Time (ms) F7 to hide", new Vector2(80f, num - 16), Color.White);
 		DrawString("Median", new Vector2(273f, num), Color.White);
 		DrawString("P90", new Vector2(325f, num), Color.White);
@@ -761,6 +817,9 @@ public static class TimeLogger
 			}
 		}
 		num += 12;
+		DrawEntry(TotalUpdate, ref num);
+		DrawEntry(UpdatesInWorld, ref num, 1);
+		num += 12;
 		foreach (TimeLogData entry2 in entries)
 		{
 			if (entry2.pendingDisplay)
@@ -818,7 +877,8 @@ public static class TimeLogger
 		e.pendingDisplay = false;
 		if (DrawnEntryNumber++ % 2 == 1)
 		{
-			Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(0, y, TableWidth, 12), new Color(0, 0, 0, 80));
+			Main.tileBatch.SetLayer(DrawLayer_Background, 0);
+			Main.tileBatch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(0, y, TableWidth, 12), new Color(0, 0, 0, 80));
 		}
 		int num = 0;
 		DrawString(e.name, new Vector2(num + 20 + indent * 12, y), PerformanceColor(e.data[0].median, e.budget));
@@ -885,7 +945,7 @@ public static class TimeLogger
 
 	private static void DrawString(string text, Vector2 pos, Color color)
 	{
-		Utils.DrawBorderString(Main.spriteBatch, text, pos, color, 0.75f);
+		ChatManager.DrawStringWithShadowFast(Main.tileBatch, FontAssets.MouseText.Value, text, pos, color, Vector2.Zero, 0.75f, DrawLayer_Text, 1.5f);
 	}
 
 	private static Color PerformanceColor(long value, long budget)

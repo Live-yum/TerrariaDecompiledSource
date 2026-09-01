@@ -17,6 +17,25 @@ namespace Terraria;
 
 public class Item : IEntitySourceTarget
 {
+	private class DefaultAssignNewItemsToPlayer_OverrideHandle : IDisposable
+	{
+		private readonly int? _prev;
+
+		public DefaultAssignNewItemsToPlayer_OverrideHandle(int plr)
+		{
+			int? defaultAssignItemsToNewPlayer = _DefaultAssignItemsToNewPlayer;
+			_DefaultAssignItemsToNewPlayer = plr;
+			_prev = defaultAssignItemsToNewPlayer;
+		}
+
+		public void Dispose()
+		{
+			_DefaultAssignItemsToNewPlayer = _prev;
+		}
+	}
+
+	public delegate void NewItemModifier(WorldItem item);
+
 	public int width;
 
 	public int height;
@@ -101,7 +120,7 @@ public class Item : IEntitySourceTarget
 
 	public byte dye;
 
-	public int fishingPole = 1;
+	public int fishingPole;
 
 	public int bait;
 
@@ -299,7 +318,6 @@ public class Item : IEntitySourceTarget
 
 	public bool newAndShiny;
 
-	[Old("This is used to allow items to be discerned as vanity even if they didn't have visual slots to poll against")]
 	public bool hasVanityEffects;
 
 	private const int foodWidth = 22;
@@ -310,11 +328,12 @@ public class Item : IEntitySourceTarget
 
 	private static Color[] _phaseColors = null;
 
+	[ThreadStatic]
+	private static int? _DefaultAssignItemsToNewPlayer;
+
 	public static readonly int PickupReplacementTime = 1200;
 
 	public static readonly int SlotsRemainingBeforeEmergencyStackingInMultiplayer = 40;
-
-	public bool active => type != 0;
 
 	public string Name => _nameOverride ?? Lang.GetItemNameValue(type);
 
@@ -1366,7 +1385,7 @@ public class Item : IEntitySourceTarget
 		return false;
 	}
 
-	public void SetDefaults1(int type)
+	private void SetDefaults1(int type)
 	{
 		switch (type)
 		{
@@ -2680,7 +2699,7 @@ public class Item : IEntitySourceTarget
 			handOnSlot = 3;
 			break;
 		case 112:
-			mana = 12;
+			mana = 9;
 			damage = 48;
 			useStyle = 1;
 			shootSpeed = 7.5f;
@@ -4408,7 +4427,7 @@ public class Item : IEntitySourceTarget
 		case 255:
 			width = 12;
 			height = 20;
-			value = 2000;
+			value = 450;
 			break;
 		case 256:
 			width = 18;
@@ -6508,7 +6527,7 @@ public class Item : IEntitySourceTarget
 			damage = 0;
 			knockBack = 7f;
 			useStyle = 5;
-			shootSpeed = 14f;
+			shootSpeed = 14.5f;
 			shoot = 73;
 			width = 18;
 			height = 28;
@@ -7237,7 +7256,7 @@ public class Item : IEntitySourceTarget
 			damage = 42;
 			shootSpeed = 4.5f;
 			noMelee = true;
-			knockBack = 2f;
+			knockBack = 1.5f;
 			value = 200000;
 			mana = 5;
 			magic = true;
@@ -7878,7 +7897,7 @@ public class Item : IEntitySourceTarget
 		case 546:
 			shootSpeed = 5f;
 			shoot = 104;
-			damage = 12;
+			damage = 15;
 			width = 8;
 			height = 8;
 			consumable = true;
@@ -8100,14 +8119,14 @@ public class Item : IEntitySourceTarget
 		case 578:
 			useStyle = 5;
 			autoReuse = true;
-			useAnimation = 17;
-			useTime = 17;
+			useAnimation = 16;
+			useTime = 16;
 			width = 50;
 			height = 18;
 			shoot = 1;
 			useAmmo = AmmoID.Arrow;
 			UseSound = SoundID.Item5;
-			damage = 50;
+			damage = 53;
 			shootSpeed = 11f;
 			noMelee = true;
 			value = 200000;
@@ -9392,7 +9411,7 @@ public class Item : IEntitySourceTarget
 			autoReuse = true;
 			useAmmo = AmmoID.Arrow;
 			UseSound = SoundID.Item5;
-			damage = 53;
+			damage = 40;
 			shootSpeed = 11f;
 			knockBack = 4.7f;
 			rare = 5;
@@ -9409,21 +9428,21 @@ public class Item : IEntitySourceTarget
 			UseSound = SoundID.Item20;
 			noMelee = true;
 			useStyle = 5;
-			damage = 88;
-			useAnimation = 17;
-			useTime = 17;
+			damage = 150;
+			useAnimation = 27;
+			useTime = 27;
 			width = 30;
 			height = 30;
 			shoot = 114;
 			shootSpeed = 13f;
-			knockBack = 6.5f;
+			knockBack = 6.66f;
 			magic = true;
 			value = 500000;
 			if (Variant == ItemVariants.WeakerVariant)
 			{
 				value = hellPrice;
 				rare = 3;
-				damage = 42;
+				damage = 77;
 				mana = 9;
 			}
 			break;
@@ -9955,7 +9974,7 @@ public class Item : IEntitySourceTarget
 			legSlot = 34;
 			break;
 		case 739:
-			mana = 5;
+			mana = 7;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
 			damage = 15;
@@ -9971,7 +9990,7 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			break;
 		case 740:
-			mana = 5;
+			mana = 7;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
 			damage = 16;
@@ -9987,7 +10006,7 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			break;
 		case 741:
-			mana = 6;
+			mana = 8;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
 			damage = 18;
@@ -10005,7 +10024,7 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			break;
 		case 742:
-			mana = 6;
+			mana = 8;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
 			damage = 19;
@@ -10023,10 +10042,10 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			break;
 		case 743:
-			mana = 7;
+			mana = 9;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
-			damage = 21;
+			damage = 18;
 			useAnimation = 28;
 			useTime = 28;
 			width = 40;
@@ -10041,7 +10060,7 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			break;
 		case 744:
-			mana = 8;
+			mana = 9;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
 			damage = 23;
@@ -12652,6 +12671,7 @@ public class Item : IEntitySourceTarget
 			width = 22;
 			height = 22;
 			accessory = true;
+			lifeRegen = 2;
 			rare = 1;
 			value = 50000;
 			handOnSlot = 1;
@@ -12720,7 +12740,7 @@ public class Item : IEntitySourceTarget
 		case 988:
 			shootSpeed = 3.75f;
 			shoot = 172;
-			damage = 7;
+			damage = 9;
 			width = 10;
 			height = 28;
 			consumable = true;
@@ -12909,7 +12929,7 @@ public class Item : IEntitySourceTarget
 		}
 	}
 
-	public void SetDefaults2(int type)
+	private void SetDefaults2(int type)
 	{
 		switch (type)
 		{
@@ -14442,14 +14462,14 @@ public class Item : IEntitySourceTarget
 			useStyle = 5;
 			mana = 5;
 			autoReuse = true;
-			useAnimation = 7;
-			useTime = 7;
+			useAnimation = 15;
+			useTime = 5;
 			width = 24;
 			height = 18;
 			shoot = 206;
 			UseSound = SoundID.LeafBlower;
 			damage = 48;
-			shootSpeed = 11f;
+			shootSpeed = 15f;
 			noMelee = true;
 			value = 300000;
 			knockBack = 4f;
@@ -15101,9 +15121,10 @@ public class Item : IEntitySourceTarget
 			return;
 		case 1226:
 			useStyle = 1;
-			useAnimation = 26;
-			useTime = 60;
-			shoot = 229;
+			useAnimation = 32;
+			useTime = useAnimation;
+			shoot = 1126;
+			shootsEveryUse = true;
 			shootSpeed = 8f;
 			knockBack = 6f;
 			width = 40;
@@ -15114,22 +15135,25 @@ public class Item : IEntitySourceTarget
 			value = 276000;
 			scale = 1f;
 			melee = true;
+			noMelee = true;
 			return;
 		case 1227:
-			autoReuse = true;
-			useTurn = true;
-			useStyle = 1;
-			useAnimation = 16;
-			useTime = 28;
-			shoot = 228;
-			shootSpeed = 8f;
-			knockBack = 4f;
+			useStyle = 13;
+			useAnimation = 30;
+			useTime = 6;
 			width = 40;
 			height = 40;
-			damage = 57;
+			shoot = 1127;
 			UseSound = SoundID.Item1;
-			rare = 7;
+			damage = 80;
+			shootSpeed = 2.4f;
+			noMelee = true;
 			value = 276000;
+			melee = true;
+			knockBack = 5f;
+			noUseGraphic = true;
+			rare = 7;
+			autoReuse = true;
 			melee = true;
 			return;
 		case 1228:
@@ -15959,6 +15983,7 @@ public class Item : IEntitySourceTarget
 			width = 22;
 			height = 10;
 			value = sellPrice(0, 1);
+			rare = 8;
 			return;
 		case 1294:
 			useStyle = 1;
@@ -16227,13 +16252,13 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			useStyle = 5;
 			damage = 29;
-			useAnimation = 26;
-			useTime = 26;
+			useAnimation = 32;
+			useTime = 32;
 			width = 24;
 			height = 28;
 			shoot = 837;
 			scale = 0.9f;
-			shootSpeed = 3.5f;
+			shootSpeed = 4.5f;
 			knockBack = 3.5f;
 			magic = true;
 			value = sellPrice(0, 1, 50);
@@ -16658,7 +16683,7 @@ public class Item : IEntitySourceTarget
 		case 1350:
 			shootSpeed = 4.6f;
 			shoot = 285;
-			damage = 15;
+			damage = 10;
 			width = 8;
 			height = 8;
 			consumable = true;
@@ -17872,7 +17897,7 @@ public class Item : IEntitySourceTarget
 			height = 40;
 			shoot = 294;
 			shootSpeed = 6f;
-			knockBack = 3.25f;
+			knockBack = 6f;
 			value = sellPrice(0, 6);
 			magic = true;
 			rare = 8;
@@ -19053,6 +19078,7 @@ public class Item : IEntitySourceTarget
 			value = 100000;
 			handOffSlot = 3;
 			handOnSlot = 8;
+			defense = 2;
 			return;
 		case 1596:
 		case 1597:
@@ -19093,7 +19119,7 @@ public class Item : IEntitySourceTarget
 			rare = 7;
 			value = sellPrice(0, 5);
 			accessory = true;
-			defense = 4;
+			defense = 5;
 			shieldSlot = 4;
 			return;
 		case 1614:
@@ -21352,7 +21378,7 @@ public class Item : IEntitySourceTarget
 		}
 	}
 
-	public void SetDefaults3(int type)
+	private void SetDefaults3(int type)
 	{
 		switch (type)
 		{
@@ -22320,7 +22346,7 @@ public class Item : IEntitySourceTarget
 				return;
 			case 2209:
 				UseSound = SoundID.Item3;
-				healMana = 300;
+				healMana = 400;
 				useStyle = 9;
 				useTurn = true;
 				useAnimation = 17;
@@ -22385,6 +22411,7 @@ public class Item : IEntitySourceTarget
 					value = buyPrice(0, 16);
 					handOffSlot = 10;
 					handOnSlot = 17;
+					defense = 2;
 					return;
 				case 2222:
 					width = 18;
@@ -27627,11 +27654,10 @@ public class Item : IEntitySourceTarget
 		questItem = true;
 		width = 26;
 		height = 26;
-		uniqueStack = true;
 		rare = -11;
 	}
 
-	public void SetDefaults4(int type)
+	private void SetDefaults4(int type)
 	{
 		switch (type)
 		{
@@ -27804,7 +27830,7 @@ public class Item : IEntitySourceTarget
 			width = 8;
 			height = 8;
 			ammo = AmmoID.Dart;
-			damage = 7;
+			damage = 10;
 			knockBack = 2.5f;
 			shootSpeed = 3f;
 			ranged = true;
@@ -30095,34 +30121,33 @@ public class Item : IEntitySourceTarget
 				shoot = 534;
 				break;
 			case 3315:
+				SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 4));
 				knockBack = 3.25f;
-				damage = 39;
-				value = sellPrice(0, 4);
-				rare = 3;
+				damage = 40;
+				crit = 20;
 				shoot = 562;
 				break;
 			case 3316:
+				SetShopValues(ItemRarityColor.LightRed4, sellPrice(0, 4));
 				knockBack = 3.8f;
-				damage = 49;
-				value = sellPrice(0, 4);
-				rare = 3;
+				damage = 53;
 				shoot = 563;
 				break;
 			case 3283:
 				knockBack = 3.3f;
-				damage = 39;
+				damage = 34;
 				value = sellPrice(0, 4);
 				rare = 4;
 				break;
 			case 3289:
 				knockBack = 2.8f;
-				damage = 43;
+				damage = 47;
 				value = sellPrice(0, 4);
 				rare = 4;
 				break;
 			case 3290:
 				knockBack = 4.5f;
-				damage = 39;
+				damage = 43;
 				value = sellPrice(0, 4);
 				rare = 4;
 				break;
@@ -30140,7 +30165,7 @@ public class Item : IEntitySourceTarget
 				break;
 			case 3291:
 				knockBack = 4.3f;
-				damage = 95;
+				damage = 120;
 				value = sellPrice(0, 11);
 				rare = 8;
 				crit += 10;
@@ -30832,7 +30857,7 @@ public class Item : IEntitySourceTarget
 			value = sellPrice(0, 0, 40);
 			return;
 		case 3377:
-			mana = 7;
+			mana = 9;
 			UseSound = SoundID.Item43;
 			useStyle = 5;
 			damage = 21;
@@ -31953,7 +31978,7 @@ public class Item : IEntitySourceTarget
 			rare = 2;
 			value = sellPrice(0, 0, 50);
 			shoot = 1083;
-			shootSpeed = 15f;
+			shootSpeed = 7.5f;
 			return;
 		case 3351:
 			SetDefaults1(4);
@@ -33377,7 +33402,7 @@ public class Item : IEntitySourceTarget
 			value = sellPrice(0, 0, 10);
 			rare = 2;
 			shoot = 1082;
-			shootSpeed = 11f;
+			shootSpeed = 6.5f;
 			crit = 7;
 			return;
 		case 3773:
@@ -33898,7 +33923,7 @@ public class Item : IEntitySourceTarget
 			value = sellPrice(0, 0, 25);
 			damage = 32;
 			knockBack = 4f;
-			melee = true;
+			ranged = true;
 			rare = 2;
 			useAmmo = 353;
 			return;
@@ -35435,7 +35460,7 @@ public class Item : IEntitySourceTarget
 		hasVanityEffects = true;
 	}
 
-	public void SetDefaults5(int type)
+	private void SetDefaults5(int type)
 	{
 		switch (type)
 		{
@@ -36706,7 +36731,7 @@ public class Item : IEntitySourceTarget
 			break;
 		case 4270:
 			mana = 20;
-			damage = 34;
+			damage = 40;
 			useStyle = 4;
 			shootSpeed = 32f;
 			shoot = 756;
@@ -37356,7 +37381,6 @@ public class Item : IEntitySourceTarget
 		case 4404:
 			DefaultToAccessory(20, 12);
 			SetShopValues(ItemRarityColor.White0, buyPrice(0, 1));
-			hasVanityEffects = true;
 			break;
 		case 4405:
 		case 4406:
@@ -38121,7 +38145,7 @@ public class Item : IEntitySourceTarget
 			useTime = 36;
 			rare = 8;
 			noMelee = true;
-			knockBack = 4f;
+			knockBack = 2.5f;
 			value = sellPrice(0, 20);
 			summon = true;
 			autoReuse = true;
@@ -38486,7 +38510,7 @@ public class Item : IEntitySourceTarget
 			break;
 		case 4672:
 			DefaultToWhip(841, 14, 1f, 4f);
-			SetShopValues(ItemRarityColor.Blue1, buyPrice(0, 10));
+			SetShopValues(ItemRarityColor.Blue1, buyPrice(0, 5));
 			break;
 		case 4673:
 			autoReuse = true;
@@ -39187,6 +39211,8 @@ public class Item : IEntitySourceTarget
 			SetShopValues(ItemRarityColor.Green2, buyPrice(0, 3));
 			width = 18;
 			height = 18;
+			noMelee = true;
+			noUseGraphic = true;
 			break;
 		case 4767:
 			SetShopValues(ItemRarityColor.Blue1, buyPrice(0, 5));
@@ -41943,6 +41969,8 @@ public class Item : IEntitySourceTarget
 			SetShopValues(ItemRarityColor.Green2, buyPrice(0, 3));
 			width = 18;
 			height = 18;
+			noMelee = true;
+			noUseGraphic = true;
 			break;
 		case 5286:
 			DefaultToPlaceableTile((ushort)12, 0);
@@ -43147,7 +43175,7 @@ public class Item : IEntitySourceTarget
 			break;
 		case 5477:
 			SetShopValues(ItemRarityColor.Lime7, sellPrice(0, 6));
-			DefaultToWhip(1032, 75, 2f, 4f);
+			DefaultToWhip(1032, 50, 2f, 4f);
 			break;
 		case 5478:
 			SetShopValues(ItemRarityColor.Yellow8, sellPrice(0, 5));
@@ -44442,7 +44470,7 @@ public class Item : IEntitySourceTarget
 			noUseGraphic = true;
 			break;
 		case 5663:
-			damage = 9;
+			damage = 11;
 			shootSpeed = 10f;
 			shoot = 1093;
 			width = 26;
@@ -44648,7 +44676,7 @@ public class Item : IEntitySourceTarget
 			knockBack = 6.5f;
 			width = 32;
 			height = 32;
-			damage = 9;
+			damage = 12;
 			scale = 1f;
 			UseSound = SoundID.Item1;
 			shoot = 1103;
@@ -44656,10 +44684,18 @@ public class Item : IEntitySourceTarget
 			noMelee = true;
 			noUseGraphic = true;
 			melee = true;
+			if (Variant == ItemVariants.WeakerVariant)
+			{
+				damage = 9;
+			}
 			break;
 		case 5688:
-			DefaultToWhip(1104, 12, 1f, 4f);
+			DefaultToWhip(1104, 15, 1f, 4f);
 			SetShopValues(ItemRarityColor.Blue1, sellPrice(0, 0, 0, 50));
+			if (Variant == ItemVariants.WeakerVariant)
+			{
+				damage = 12;
+			}
 			break;
 		case 5689:
 			DefaultToPlaceableTile((ushort)90, 45);
@@ -46044,7 +46080,7 @@ public class Item : IEntitySourceTarget
 			break;
 		case 5920:
 			DefaultToPlaceableTile((ushort)736, 0);
-			value = buyPrice(0, 0, 0, 50);
+			value = buyPrice(0, 0, 2);
 			break;
 		case 5921:
 			DefaultToPlaceableWall(354);
@@ -46063,7 +46099,7 @@ public class Item : IEntitySourceTarget
 			break;
 		case 5926:
 			DefaultToPlaceableTile((ushort)739, 0);
-			value = buyPrice(0, 0, 0, 50);
+			value = buyPrice(0, 0, 2);
 			break;
 		case 5927:
 			DefaultToPlaceableWall(357);
@@ -47296,6 +47332,347 @@ public class Item : IEntitySourceTarget
 		case 6144:
 			DefaultToMusicBox(98);
 			break;
+		case 6145:
+			DefaultToMusicBox(99);
+			break;
+		case 6146:
+			DefaultToMusicBox(100);
+			break;
+		case 6147:
+			SetShopValues(ItemRarityColor.Blue1, buyPrice(0, 0, 25));
+			DefaultToPlaceableTile((ushort)753, 0);
+			break;
+		case 6148:
+			damage = 22;
+			shootSpeed = 10f;
+			shoot = 1112;
+			width = 26;
+			height = 28;
+			rare = 5;
+			noMelee = true;
+			knockBack = 2f;
+			buffType = 389;
+			value = sellPrice(0, 1);
+			summon = true;
+			autoReuse = true;
+			reuseDelay = 2;
+			useStyle = 5;
+			useTime = 15;
+			useAnimation = 15;
+			noUseGraphic = true;
+			glowMask = 379;
+			break;
+		case 6149:
+			damage = 40;
+			shootSpeed = 10f;
+			shoot = 1113;
+			width = 26;
+			height = 28;
+			rare = 4;
+			noMelee = true;
+			knockBack = 3f;
+			buffType = 390;
+			value = sellPrice(0, 1);
+			summon = true;
+			autoReuse = true;
+			reuseDelay = 2;
+			useStyle = 5;
+			useTime = 15;
+			useAnimation = 15;
+			noUseGraphic = true;
+			glowMask = 380;
+			break;
+		case 6150:
+			SetShopValues(ItemRarityColor.Blue1, sellPrice(0, 0, 1));
+			useStyle = 1;
+			width = 18;
+			height = 18;
+			UseSound = SoundID.PalSummon;
+			useAnimation = 20;
+			useTime = 20;
+			noMelee = true;
+			noUseGraphic = true;
+			mountType = 64;
+			glowMask = 381;
+			break;
+		case 6151:
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 0, 1));
+			useStyle = 1;
+			width = 18;
+			height = 18;
+			UseSound = SoundID.PalSummon;
+			useAnimation = 20;
+			useTime = 20;
+			noMelee = true;
+			noUseGraphic = true;
+			mountType = 65;
+			glowMask = 382;
+			break;
+		case 6152:
+			SetShopValues(ItemRarityColor.Blue1, buyPrice(0, 0, 1));
+			DefaultToMagicWeapon(1114, 40, 6f);
+			useTime = 4;
+			mana = 5;
+			width = 10;
+			height = 10;
+			knockBack = 3f;
+			damage = 8;
+			UseSound = SoundID.Item8;
+			autoReuse = true;
+			break;
+		case 6153:
+			SetShopValues(ItemRarityColor.Blue1, sellPrice(0, 0, 40));
+			DefaultToMagicWeapon(1115, 24, 4f);
+			mana = 10;
+			width = 10;
+			height = 10;
+			knockBack = 2f;
+			damage = 11;
+			crit = 11;
+			UseSound = SoundID.GlacierFang_Charging;
+			channel = true;
+			break;
+		case 6154:
+			SetShopValues(ItemRarityColor.Orange3, sellPrice(0, 1, 50));
+			DefaultToMagicWeapon(1116, 42, 5f);
+			mana = 20;
+			width = 10;
+			height = 10;
+			knockBack = 3.5f;
+			damage = 20;
+			UseSound = SoundID.MysticBloom;
+			useStyle = 15;
+			autoReuse = true;
+			break;
+		case 6155:
+			DefaultToStaff(1117, 8f, 55, 30);
+			SetWeaponValues(150, 10f, 10);
+			SetShopValues(ItemRarityColor.LightPurple6, sellPrice(0, 1));
+			break;
+		case 6156:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Green2, sellPrice(0, 1, 75));
+			handOnSlot = 27;
+			handOffSlot = 17;
+			break;
+		case 6157:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.LightRed4, sellPrice(0, 2));
+			handOnSlot = 28;
+			break;
+		case 6158:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Lime7, sellPrice(0, 5));
+			break;
+		case 6159:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.LightRed4, sellPrice(0, 2));
+			handOnSlot = 29;
+			break;
+		case 6160:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Orange3, sellPrice(0, 1));
+			break;
+		case 6162:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Yellow8, sellPrice(0, 3, 50));
+			handOnSlot = 30;
+			break;
+		case 6163:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 2, 25));
+			handOnSlot = 31;
+			handOffSlot = 18;
+			break;
+		case 6161:
+			damage = 5;
+			shootSpeed = 10f;
+			shoot = 1118;
+			width = 26;
+			height = 28;
+			UseSound = SoundID.Item82;
+			rare = 1;
+			noMelee = true;
+			knockBack = 2f;
+			buffType = 393;
+			value = sellPrice(0, 0, 1);
+			summon = true;
+			autoReuse = true;
+			reuseDelay = 2;
+			useStyle = 1;
+			useAnimation = 36;
+			useTime = 36;
+			break;
+		case 6164:
+			SetShopValues(ItemRarityColor.LightRed4, sellPrice(0, 1));
+			damage = 40;
+			shootSpeed = 10f;
+			shoot = 1119;
+			width = 26;
+			height = 28;
+			UseSound = SoundID.Item113;
+			noMelee = true;
+			knockBack = 4f;
+			buffType = 394;
+			summon = true;
+			autoReuse = true;
+			reuseDelay = 2;
+			useStyle = 1;
+			useAnimation = 36;
+			useTime = 36;
+			break;
+		case 6165:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Blue1, sellPrice(0, 0, 75));
+			break;
+		case 6166:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Green2, sellPrice(0, 0, 65));
+			break;
+		case 6167:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Orange3, sellPrice(0, 1, 50));
+			break;
+		case 6168:
+		case 6169:
+		case 6193:
+		case 6194:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 8));
+			break;
+		case 6170:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Orange3, sellPrice(0, 1));
+			break;
+		case 6172:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 1));
+			break;
+		case 6171:
+			DefaultToStaff(126, 6f, 22, 15);
+			SetWeaponValues(27, 6f);
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 1));
+			break;
+		case 6173:
+			DefaultToStaff(1122, 8f, 18, 18);
+			useTime = 6;
+			SetWeaponValues(180, 4f);
+			SetShopValues(ItemRarityColor.StrongRed10, sellPrice(0, 1));
+			UseSound = SoundID.Item15;
+			noUseGraphic = true;
+			break;
+		case 6174:
+			useTurn = true;
+			width = 20;
+			height = 20;
+			useStyle = 5;
+			useTime = 15;
+			useAnimation = 15;
+			useStyle = 5;
+			noUseGraphic = true;
+			rare = 3;
+			value = sellPrice(0, 1);
+			shoot = 1123;
+			glowMask = 383;
+			break;
+		case 6175:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Lime7, sellPrice(0, 4, 25));
+			break;
+		case 6176:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Yellow8, sellPrice(0, 3, 75));
+			break;
+		case 6177:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.LightPurple6, sellPrice(0, 1, 50));
+			defense = 1;
+			shieldSlot = 11;
+			break;
+		case 6178:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.LightRed4, sellPrice(0, 2));
+			break;
+		case 6179:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 2));
+			handOnSlot = 32;
+			break;
+		case 6180:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 1, 50));
+			neckSlot = 14;
+			break;
+		case 6181:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.LightPurple6, sellPrice(0, 4, 50));
+			backSlot = 40;
+			break;
+		case 6182:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.LightRed4, sellPrice(0, 1, 50));
+			handOnSlot = 25;
+			handOffSlot = 16;
+			break;
+		case 6183:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Orange3, sellPrice(0, 1, 75));
+			defense = 2;
+			shieldSlot = 10;
+			break;
+		case 6184:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Orange3, sellPrice(0, 1, 50));
+			break;
+		case 6185:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 1, 50));
+			handOnSlot = 26;
+			break;
+		case 6186:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 2));
+			frontSlot = 17;
+			backSlot = 41;
+			break;
+		case 6187:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Pink5, sellPrice(0, 1, 50));
+			neckSlot = 13;
+			break;
+		case 6188:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Green2, sellPrice(0, 1, 50));
+			defense = 1;
+			lifeRegen = 2;
+			shieldSlot = 12;
+			break;
+		case 6189:
+			DefaultToAccessory();
+			SetShopValues(ItemRarityColor.Yellow8, sellPrice(0, 2));
+			lifeRegen = 2;
+			waistSlot = 17;
+			break;
+		case 6190:
+			SetShopValues(ItemRarityColor.StrongRed10, sellPrice(0, 7));
+			width = 30;
+			height = 30;
+			break;
+		case 6191:
+			SetShopValues(ItemRarityColor.Pink5, sellPrice());
+			width = 18;
+			height = 18;
+			break;
+		case 6192:
+			SetShopValues(ItemRarityColor.Lime7, sellPrice());
+			width = 18;
+			height = 18;
+			break;
+		case 6195:
+			SetShopValues(ItemRarityColor.StrongRed10, sellPrice(0, 7));
+			width = 30;
+			height = 30;
+			break;
 		case 4009:
 		case 4010:
 		case 4011:
@@ -47498,6 +47875,13 @@ public class Item : IEntitySourceTarget
 				return compareType == 5325;
 			}
 			return true;
+		case 6190:
+		case 6195:
+			if (compareType != 6190)
+			{
+				return compareType == 6195;
+			}
+			return true;
 		case 5323:
 		case 5455:
 			if (compareType != 5323)
@@ -47527,6 +47911,15 @@ public class Item : IEntitySourceTarget
 			if (compareType != 5358 && compareType != 5360 && compareType != 5359 && compareType != 5361)
 			{
 				return compareType == 5437;
+			}
+			return true;
+		case 6168:
+		case 6169:
+		case 6193:
+		case 6194:
+			if (compareType != 6168 && compareType != 6169 && compareType != 6193)
+			{
+				return compareType == 6194;
 			}
 			return true;
 		case 2611:
@@ -48261,6 +48654,15 @@ public class Item : IEntitySourceTarget
 		vanity = true;
 	}
 
+	public Item()
+	{
+	}
+
+	public Item(int Type, ItemVariant variant = null)
+	{
+		SetDefaults(Type, variant);
+	}
+
 	public void SetDefaults(int Type, ItemVariant variant = null)
 	{
 		if (Type < 0)
@@ -48526,6 +48928,14 @@ public class Item : IEntitySourceTarget
 		}
 	}
 
+	private void DebugTrySettingManaCost(int itemType, int manaToSet)
+	{
+		if (type == itemType)
+		{
+			mana = manaToSet;
+		}
+	}
+
 	public void OnCreated(ItemCreationContext context)
 	{
 		if (type == 5437)
@@ -48781,6 +49191,8 @@ public class Item : IEntitySourceTarget
 		case 75:
 		case 671:
 		case 3858:
+		case 6155:
+		case 6173:
 			return new Color(255, 255, 255, 255);
 		case 119:
 		case 120:
@@ -49119,6 +49531,15 @@ public class Item : IEntitySourceTarget
 			149 => FlexibleTileWand.Book, 
 			5481 => FlexibleTileWand.PortableKiln, 
 			5472 => FlexibleTileWand.DeadCellsDisplayJar, 
+			181 => FlexibleTileWand.Amethyst, 
+			180 => FlexibleTileWand.Topaz, 
+			177 => FlexibleTileWand.Sapphire, 
+			179 => FlexibleTileWand.Emerald, 
+			178 => FlexibleTileWand.Ruby, 
+			182 => FlexibleTileWand.Diamond, 
+			999 => FlexibleTileWand.Amber, 
+			580 => FlexibleTileWand.Explosives, 
+			6147 => FlexibleTileWand.GiantTiki, 
 			_ => null, 
 		};
 	}
@@ -49215,28 +49636,33 @@ public class Item : IEntitySourceTarget
 		}
 	}
 
-	public WorldItem ToWorldItem()
+	public static IDisposable DefaultAssignNewItemsToPlayer(int plr)
 	{
-		return null;
+		return new DefaultAssignNewItemsToPlayer_OverrideHandle(plr);
 	}
 
-	public static int NewItem(IEntitySource source, Vector2 pos, Vector2 randomBox, int Type, int Stack = 1, bool noBroadcast = false, int prefixGiven = 0, bool noGrabDelay = false)
+	public static void RequestNewItem(IEntitySource source, Vector2 center, int type, int stack = 1, int prefix = 0, NewItemOwnership ownership = NewItemOwnership.None, Vector2? velocity = null, NewItemModifier modifier = null)
 	{
-		return NewItem(source, (int)pos.X, (int)pos.Y, (int)randomBox.X, (int)randomBox.Y, Type, Stack, noBroadcast, prefixGiven, noGrabDelay);
+		int number = NewItem(source, center, type, stack, prefix, ownership, velocity, modifier);
+		if (Main.netMode == 1)
+		{
+			NetMessage.SendData(21, -1, -1, null, number, (float)ownership);
+		}
 	}
 
-	public static int NewItem(IEntitySource source, Vector2 pos, int Width, int Height, int Type, int Stack = 1, bool noBroadcast = false, int prefixGiven = 0, bool noGrabDelay = false)
+	[Obsolete("Unergonomic")]
+	public static int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack = 1, bool noBroadcast = false, int prefix = 0, NewItemOwnership ownership = NewItemOwnership.None, Vector2? velocity = null, NewItemModifier modifier = null)
 	{
-		return NewItem(source, (int)pos.X, (int)pos.Y, Width, Height, Type, Stack, noBroadcast, prefixGiven, noGrabDelay);
+		return NewItem(source, new Vector2(X + Width / 2, Y + Height / 2), type, stack, prefix, ownership, velocity, modifier, noBroadcast);
 	}
 
-	public static int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int Type, int Stack = 1, bool noBroadcast = false, int pfix = 0, bool noGrabDelay = false)
+	public static int NewItem(IEntitySource source, Vector2 center, int type, int stack = 1, int prefix = 0, NewItemOwnership ownership = NewItemOwnership.None, Vector2? velocity = null, NewItemModifier modifier = null, bool noBroadcast = false)
 	{
 		if (WorldGen.isGeneratingOrLoadingWorld)
 		{
 			return 0;
 		}
-		if (Stack <= 0)
+		if (stack <= 0)
 		{
 			return 400;
 		}
@@ -49246,54 +49672,54 @@ public class Item : IEntitySourceTarget
 		}
 		if (Main.tenthAnniversaryWorld)
 		{
-			if (Type == 58)
+			if (type == 58)
 			{
-				Type = Main.rand.NextFromList(new short[3] { 1734, 1867, 58 });
+				type = Main.rand.NextFromList(new short[3] { 1734, 1867, 58 });
 			}
-			if (Type == 184)
+			if (type == 184)
 			{
-				Type = Main.rand.NextFromList(new short[3] { 1735, 1868, 184 });
+				type = Main.rand.NextFromList(new short[3] { 1735, 1868, 184 });
 			}
 		}
 		else if (Main.halloween && Main.xMas)
 		{
-			if (Type == 58)
+			if (type == 58)
 			{
-				Type = Main.rand.NextFromList(new short[2] { 1734, 1867 });
+				type = Main.rand.NextFromList(new short[2] { 1734, 1867 });
 			}
-			if (Type == 184)
+			if (type == 184)
 			{
-				Type = Main.rand.NextFromList(new short[2] { 1735, 1868 });
+				type = Main.rand.NextFromList(new short[2] { 1735, 1868 });
 			}
 		}
 		else
 		{
 			if (Main.halloween)
 			{
-				if (Type == 58)
+				if (type == 58)
 				{
-					Type = 1734;
+					type = 1734;
 				}
-				if (Type == 184)
+				if (type == 184)
 				{
-					Type = 1735;
+					type = 1735;
 				}
 			}
 			if (Main.xMas)
 			{
-				if (Type == 58)
+				if (type == 58)
 				{
-					Type = 1867;
+					type = 1867;
 				}
-				if (Type == 184)
+				if (type == 184)
 				{
-					Type = 1868;
+					type = 1868;
 				}
 			}
 		}
-		if (Type > 0 && cachedItemSpawnsByType[Type] != -1)
+		if (type > 0 && cachedItemSpawnsByType[type] != -1)
 		{
-			cachedItemSpawnsByType[Type] += Stack;
+			cachedItemSpawnsByType[type] += stack;
 			return 400;
 		}
 		int num = ((Main.netMode == 1) ? 400 : PickAnItemSlotToSpawnItemOn());
@@ -49303,38 +49729,49 @@ public class Item : IEntitySourceTarget
 		}
 		Main.timeItemSlotCannotBeReusedFor[num] = 0;
 		EmergencyStacking.ClearPendingTransfersInvolving(Main.item[num]);
-		Main.item[num] = new WorldItem();
-		WorldItem worldItem = Main.item[num];
-		worldItem.SetDefaults(Type);
-		worldItem.whoAmI = num;
-		worldItem.Prefix(pfix);
-		worldItem.stack = Stack;
-		worldItem.position.X = X + Width / 2 - worldItem.width / 2;
-		worldItem.position.Y = Y + Height / 2 - worldItem.height / 2;
-		worldItem.wet = Collision.WetCollision(worldItem.position, worldItem.width, worldItem.height);
-		worldItem.velocity.X = (float)Main.rand.Next(-30, 31) * 0.1f;
-		worldItem.velocity.Y = (float)Main.rand.Next(-40, -15) * 0.1f;
-		if (Type == 859 || Type == 4743)
+		Item item = new Item();
+		item.SetDefaults(type);
+		item.stack = stack;
+		item.Prefix(prefix);
+		WorldItem worldItem = new WorldItem(item)
 		{
-			worldItem.velocity *= 0f;
+			whoAmI = num
+		};
+		Main.item[num] = worldItem;
+		worldItem.Center = center;
+		worldItem.wet = Collision.WetCollision(worldItem.position, worldItem.width, worldItem.height);
+		if (velocity.HasValue)
+		{
+			worldItem.velocity = velocity.Value;
 		}
-		if (Type == 520 || Type == 521 || (worldItem.type >= 0 && ItemID.Sets.NebulaPickup[worldItem.type]))
+		else if (ItemID.Sets.ItemNoGravity[worldItem.type])
 		{
 			worldItem.velocity.X = (float)Main.rand.Next(-30, 31) * 0.1f;
 			worldItem.velocity.Y = (float)Main.rand.Next(-30, 31) * 0.1f;
 		}
+		else
+		{
+			worldItem.velocity.X = (float)Main.rand.Next(-30, 31) * 0.1f;
+			worldItem.velocity.Y = (float)Main.rand.Next(-40, -15) * 0.1f;
+		}
 		worldItem.timeSinceItemSpawned = ItemID.Sets.OverflowProtectionTimeOffset[worldItem.type];
-		if (ItemSlot.Options.HighlightNewItems && worldItem.type >= 0 && !ItemID.Sets.NeverAppearsAsNewInInventory[worldItem.type])
+		if (_DefaultAssignItemsToNewPlayer.HasValue && ownership == NewItemOwnership.None)
 		{
-			worldItem.newAndShiny = true;
+			ownership = NewItemOwnership.ReserveForLocalPlayer;
 		}
-		if (Main.netMode == 2 && !noBroadcast)
+		if (ownership == NewItemOwnership.ReserveForLocalPlayer || ownership == NewItemOwnership.GrabDelayForLocalPlayer)
 		{
-			NetMessage.SendData(21, -1, -1, null, num, noGrabDelay.ToInt());
+			worldItem.enemyGrabDelayTime = WorldItem.DefaultGrabDelay;
 		}
-		else if (Main.netMode == 0)
+		modifier?.Invoke(worldItem);
+		if (Main.netMode == 0)
 		{
-			worldItem.playerIndexTheItemIsReservedFor = Main.myPlayer;
+			worldItem.ApplySpawnOwnership(ownership, _DefaultAssignItemsToNewPlayer ?? Main.myPlayer);
+		}
+		else if (Main.netMode == 2 && !noBroadcast)
+		{
+			NetMessage.SendData(21, -1, -1, null, num, (float)ownership);
+			worldItem.ApplySpawnOwnership(ownership, _DefaultAssignItemsToNewPlayer ?? Main.myPlayer);
 		}
 		return num;
 	}
@@ -49381,7 +49818,7 @@ public class Item : IEntitySourceTarget
 		int num5 = 0;
 		for (int j = 0; j < 400; j++)
 		{
-			if (Main.timeItemSlotCannotBeReusedFor[j] == 0 && !Main.item[j].instanced && Main.item[j].timeSinceItemSpawned > num5)
+			if (Main.timeItemSlotCannotBeReusedFor[j] == 0 && Main.item[j].timeSinceItemSpawned > num5)
 			{
 				num5 = Main.item[j].timeSinceItemSpawned;
 				num = j;
@@ -49449,20 +49886,12 @@ public class Item : IEntitySourceTarget
 		_nameOverride = null;
 	}
 
-	public void TurnToAir(bool fullReset = false)
+	public void TurnToAir()
 	{
-		if (fullReset)
+		if (type != 0 || stack != 0)
 		{
 			SetDefaults(0);
-			return;
 		}
-		type = 0;
-		stack = 0;
-		prefix = 0;
-		type = 0;
-		dye = 0;
-		shoot = 0;
-		mountType = -1;
 	}
 
 	public void OnPurchase(Item item)
@@ -49483,23 +49912,25 @@ public class Item : IEntitySourceTarget
 		return value;
 	}
 
-	public void Serialize(BinaryWriter writer, ItemSerializationContext context)
+	public void Serialize(BinaryWriter writer, bool writeFavorite = false)
 	{
-		if (context == ItemSerializationContext.SavingAndLoading)
+		writer.Write(type);
+		writer.Write(stack);
+		writer.Write(prefix);
+		if (writeFavorite)
 		{
-			writer.Write(type);
-			writer.Write(stack);
-			writer.Write(prefix);
+			writer.Write(favorited);
 		}
 	}
 
-	public void DeserializeFrom(BinaryReader reader, ItemSerializationContext context)
+	public void DeserializeFrom(BinaryReader reader, bool readFavorite = false)
 	{
-		if (context == ItemSerializationContext.SavingAndLoading)
+		netDefaults(reader.ReadInt32());
+		stack = reader.ReadInt32();
+		Prefix(reader.ReadByte());
+		if (readFavorite)
 		{
-			netDefaults(reader.ReadInt32());
-			stack = reader.ReadInt32();
-			Prefix(reader.ReadByte());
+			favorited = reader.ReadBoolean();
 		}
 		if (type >= ItemID.Count)
 		{

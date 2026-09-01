@@ -11,6 +11,7 @@ using Terraria.GameContent.Events;
 using Terraria.Graphics.Renderers;
 using Terraria.ID;
 using Terraria.ObjectData;
+using Terraria.Testing;
 
 namespace Terraria;
 
@@ -247,6 +248,18 @@ public class Chest : IFixLoadedData
 		{
 			array3[k] = WorldGen.GetItemDrop_Dressers(k);
 		}
+	}
+
+	internal static void AddGameplaySnapshotComponents()
+	{
+		StateSnapshot.Gameplay.AddRef("Chest._chestsByCoords", () => _chestsByCoords, delegate(Dictionary<Point, Chest> v)
+		{
+			_chestsByCoords = v;
+		});
+		StateSnapshot.Gameplay.AddRef("Chest._chestInUse", () => _chestInUse, delegate(HashSet<int> v)
+		{
+			_chestInUse = v;
+		});
 	}
 
 	public static bool IsPlayerInChest(int i)
@@ -655,16 +668,32 @@ public class Chest : IFixLoadedData
 		{
 			return;
 		}
+		int num2 = newItem.stack - num;
 		for (int i = 0; i < 39; i++)
 		{
-			if (item[i] == null || item[i].type == 0)
+			if (num2 <= 0)
 			{
-				item[i] = newItem.Clone();
-				item[i].favorited = false;
-				item[i].buyOnce = true;
-				item[i].stack -= num;
-				_ = item[i].value;
-				_ = 0;
+				break;
+			}
+			if (item[i] != null && item[i].buyOnce && Item.CanStack(item[i], newItem))
+			{
+				int num3 = Math.Min(num2, item[i].maxStack - item[i].stack);
+				item[i].stack += num3;
+				num2 -= num3;
+			}
+		}
+		for (int j = 0; j < 39; j++)
+		{
+			if (num2 <= 0)
+			{
+				break;
+			}
+			if (item[j] == null || item[j].IsAir)
+			{
+				item[j] = newItem.Clone();
+				item[j].favorited = false;
+				item[j].buyOnce = true;
+				item[j].stack = num2;
 				break;
 			}
 		}
@@ -1411,9 +1440,9 @@ public class Chest : IFixLoadedData
 				array[num].SetDefaults(488);
 				num++;
 			}
-			for (int k = 0; k < 58; k++)
+			for (int l = 0; l < 58; l++)
 			{
-				if (Main.player[Main.myPlayer].inventory[k].type == 930)
+				if (Main.player[Main.myPlayer].inventory[l].type == 930)
 				{
 					array[num].SetDefaults(931);
 					num++;
@@ -1738,36 +1767,36 @@ public class Chest : IFixLoadedData
 				array[num].SetDefaults(1347);
 				num++;
 			}
-			for (int m = 0; m < 58; m++)
+			for (int n = 0; n < 58; n++)
 			{
-				if (Main.player[Main.myPlayer].inventory[m].type == 4827)
+				if (Main.player[Main.myPlayer].inventory[n].type == 4827)
 				{
 					array[num].SetDefaults(4827);
 					num++;
 					break;
 				}
 			}
-			for (int n = 0; n < 58; n++)
+			for (int num3 = 0; num3 < 58; num3++)
 			{
-				if (Main.player[Main.myPlayer].inventory[n].type == 4824)
+				if (Main.player[Main.myPlayer].inventory[num3].type == 4824)
 				{
 					array[num].SetDefaults(4824);
 					num++;
 					break;
 				}
 			}
-			for (int num3 = 0; num3 < 58; num3++)
+			for (int num4 = 0; num4 < 58; num4++)
 			{
-				if (Main.player[Main.myPlayer].inventory[num3].type == 4825)
+				if (Main.player[Main.myPlayer].inventory[num4].type == 4825)
 				{
 					array[num].SetDefaults(4825);
 					num++;
 					break;
 				}
 			}
-			for (int num4 = 0; num4 < 58; num4++)
+			for (int num5 = 0; num5 < 58; num5++)
 			{
-				if (Main.player[Main.myPlayer].inventory[num4].type == 4826)
+				if (Main.player[Main.myPlayer].inventory[num5].type == 4826)
 				{
 					array[num].SetDefaults(4826);
 					num++;
@@ -1777,17 +1806,11 @@ public class Chest : IFixLoadedData
 			break;
 		}
 		case 5:
-		{
 			array[num].SetDefaults(254);
 			num++;
 			array[num].SetDefaults(981);
 			num++;
-			if (Main.player[Main.myPlayer].ZoneGraveyard)
-			{
-				array[num].SetDefaults(5577);
-				num++;
-			}
-			else if (Main.dayTime)
+			if (Main.dayTime)
 			{
 				array[num].SetDefaults(242);
 				num++;
@@ -1947,8 +1970,7 @@ public class Chest : IFixLoadedData
 				array[num++].SetDefaults(3734);
 				array[num++].SetDefaults(3735);
 			}
-			int golferScoreAccumulated = Main.LocalPlayer.golferScoreAccumulated;
-			if (num < 38 && golferScoreAccumulated >= 2000)
+			if (num < 38 && Main.LocalPlayer.golferScoreAccumulated >= 2000)
 			{
 				array[num++].SetDefaults(4744);
 			}
@@ -1958,7 +1980,6 @@ public class Chest : IFixLoadedData
 				array[num++].SetDefaults(5630);
 			}
 			break;
-		}
 		case 6:
 			array[num].SetDefaults(128);
 			num++;
@@ -2075,9 +2096,9 @@ public class Chest : IFixLoadedData
 			num++;
 			array[num].SetDefaults(596);
 			num++;
-			for (int num10 = 1873; num10 < 1906; num10++)
+			for (int m = 1873; m < 1906; m++)
 			{
-				array[num].SetDefaults(num10);
+				array[num].SetDefaults(m);
 				num++;
 			}
 			break;
@@ -2173,7 +2194,7 @@ public class Chest : IFixLoadedData
 			{
 				array[num++].SetDefaults(2198);
 			}
-			if ((double)(Main.player[Main.myPlayer].position.Y / 16f) < Main.worldSurface * 0.3499999940395355)
+			if (Main.player[Main.myPlayer].ZoneSkyHeight)
 			{
 				array[num++].SetDefaults(2197);
 			}
@@ -2247,7 +2268,7 @@ public class Chest : IFixLoadedData
 		case 13:
 			array[num].SetDefaults(859);
 			num++;
-			if (Main.LocalPlayer.golferScoreAccumulated > 500)
+			if (Main.LocalPlayer.golferScoreAccumulated >= 500)
 			{
 				array[num++].SetDefaults(4743);
 			}
@@ -2421,9 +2442,9 @@ public class Chest : IFixLoadedData
 			num++;
 			array[num].SetDefaults(1100);
 			num++;
-			for (int j = 1073; j <= 1084; j++)
+			for (int num6 = 1073; num6 <= 1084; num6++)
 			{
-				array[num].SetDefaults(j);
+				array[num].SetDefaults(num6);
 				num++;
 			}
 			array[num].SetDefaults(1097);
@@ -2457,26 +2478,26 @@ public class Chest : IFixLoadedData
 		{
 			if (Main.xMas)
 			{
-				int num5 = 1948;
-				while (num5 <= 1957 && num < 39)
+				int num8 = 1948;
+				while (num8 <= 1957 && num < 39)
 				{
-					array[num].SetDefaults(num5);
-					num5++;
+					array[num].SetDefaults(num8);
+					num8++;
 					num++;
 				}
 			}
-			int num6 = 2158;
-			while (num6 <= 2160 && num < 39)
+			int num9 = 2158;
+			while (num9 <= 2160 && num < 39)
 			{
-				array[num].SetDefaults(num6);
-				num6++;
+				array[num].SetDefaults(num9);
+				num9++;
 				num++;
 			}
-			int num7 = 2008;
-			while (num7 <= 2014 && num < 39)
+			int num10 = 2008;
+			while (num10 <= 2014 && num < 39)
 			{
-				array[num].SetDefaults(num7);
-				num7++;
+				array[num].SetDefaults(num10);
+				num10++;
 				num++;
 			}
 			if (!Main.player[Main.myPlayer].ZoneGraveyard)
@@ -2548,12 +2569,12 @@ public class Chest : IFixLoadedData
 			}
 			if (!Main.player[Main.myPlayer].ZoneGraveyard)
 			{
-				if ((double)(Main.player[Main.myPlayer].position.Y / 16f) < Main.worldSurface * 0.3499999940395355)
+				if (Main.player[Main.myPlayer].ZoneSkyHeight)
 				{
 					array[num].SetDefaults(1485);
 					num++;
 				}
-				if ((double)(Main.player[Main.myPlayer].position.Y / 16f) < Main.worldSurface * 0.3499999940395355 && Main.hardMode)
+				if (Main.player[Main.myPlayer].ZoneSkyHeight && Main.hardMode)
 				{
 					array[num].SetDefaults(1494);
 					num++;
@@ -2591,6 +2612,10 @@ public class Chest : IFixLoadedData
 			if (NPC.AnyNPCs(108))
 			{
 				array[num++].SetDefaults(2999);
+			}
+			if (Main.player[Main.myPlayer].ZoneJungle)
+			{
+				array[num++].SetDefaults(6147);
 			}
 			if (!Main.dayTime)
 			{
@@ -2639,7 +2664,6 @@ public class Chest : IFixLoadedData
 			}
 			break;
 		case 17:
-		{
 			array[num].SetDefaults(928);
 			num++;
 			array[num].SetDefaults(929);
@@ -2655,11 +2679,9 @@ public class Chest : IFixLoadedData
 			{
 				array[num++].SetDefaults(5926);
 			}
-			int num8 = (int)((Main.screenPosition.X + (float)(Main.screenWidth / 2)) / 16f);
-			if ((double)(Main.screenPosition.Y / 16f) < Main.worldSurface + 10.0 && (num8 < 380 || num8 > Main.maxTilesX - 380))
+			if (Main.player[Main.myPlayer].ZoneBeach)
 			{
-				array[num].SetDefaults(1180);
-				num++;
+				array[num++].SetDefaults(1180);
 			}
 			if (Main.hardMode && NPC.downedMechBossAny && NPC.AnyNPCs(208))
 			{
@@ -2667,7 +2689,6 @@ public class Chest : IFixLoadedData
 				num++;
 			}
 			break;
-		}
 		case 18:
 		{
 			array[num].SetDefaults(1990);
@@ -2685,29 +2706,37 @@ public class Chest : IFixLoadedData
 				num++;
 			}
 			long num2 = 0L;
-			for (int l = 0; l < 54; l++)
+			for (int k = 0; k < 54; k++)
 			{
-				if (Main.player[Main.myPlayer].inventory[l].type == 71)
+				if (Main.player[Main.myPlayer].inventory[k].type == 71)
 				{
-					num2 += Main.player[Main.myPlayer].inventory[l].stack;
+					num2 += Main.player[Main.myPlayer].inventory[k].stack;
 				}
-				if (Main.player[Main.myPlayer].inventory[l].type == 72)
+				if (Main.player[Main.myPlayer].inventory[k].type == 72)
 				{
-					num2 += Main.player[Main.myPlayer].inventory[l].stack * 100;
+					num2 += (long)Main.player[Main.myPlayer].inventory[k].stack * 100L;
 				}
-				if (Main.player[Main.myPlayer].inventory[l].type == 73)
+				if (Main.player[Main.myPlayer].inventory[k].type == 73)
 				{
-					num2 += Main.player[Main.myPlayer].inventory[l].stack * 10000;
+					num2 += (long)Main.player[Main.myPlayer].inventory[k].stack * 10000L;
 				}
-				if (Main.player[Main.myPlayer].inventory[l].type == 74)
+				if (Main.player[Main.myPlayer].inventory[k].type == 74)
 				{
-					num2 += Main.player[Main.myPlayer].inventory[l].stack * 1000000;
+					num2 += (long)Main.player[Main.myPlayer].inventory[k].stack * 1000000L;
 				}
+				if (num2 < 0 || num2 > 9999999999L)
+				{
+					num2 = 9999999999L;
+					break;
+				}
+			}
+			if (num2 < 0 || num2 > 9999999999L)
+			{
+				num2 = 9999999999L;
 			}
 			if (num2 >= 1000000)
 			{
-				array[num].SetDefaults(1980);
-				num++;
+				array[num++].SetDefaults(1980);
 			}
 			if ((Main.moonPhase % 2 == 0 && Main.dayTime) || (Main.moonPhase % 2 == 1 && !Main.dayTime))
 			{
@@ -2747,23 +2776,27 @@ public class Chest : IFixLoadedData
 				num++;
 			}
 			array[num++].SetDefaults(5104);
+			if (Main.player[Main.myPlayer].ZoneGraveyard)
+			{
+				array[num++].SetDefaults(5577);
+			}
 			break;
 		}
 		case 19:
 		{
 			Player localPlayer = Main.LocalPlayer;
-			if (localPlayer.HasItemInAnyInventory(5667) || localPlayer.HasItemInAnyInventory(5663) || localPlayer.HasItemInAnyInventory(5664) || localPlayer.HasItemInAnyInventory(5665) || localPlayer.HasItemInAnyInventory(5666))
+			if (localPlayer.HasItemInAnyInventory(5667) || localPlayer.HasItemInAnyInventory(5663) || localPlayer.HasItemInAnyInventory(5664) || localPlayer.HasItemInAnyInventory(5665) || localPlayer.HasItemInAnyInventory(5666) || localPlayer.HasItemInAnyInventory(6174) || localPlayer.HasItemInAnyInventory(6148) || localPlayer.HasItemInAnyInventory(6149) || localPlayer.HasItemInAnyInventory(6150) || localPlayer.HasItemInAnyInventory(6151))
 			{
 				array[num].SetDefaults(5735);
 				num++;
 				array[num].SetDefaults(5736);
 				num++;
 			}
-			for (int num9 = 0; num9 < maxItems; num9++)
+			for (int j = 0; j < maxItems; j++)
 			{
-				if (Main.travelShop[num9] != 0)
+				if (Main.travelShop[j] != 0)
 				{
-					array[num].SetDefaults(Main.travelShop[num9]);
+					array[num].SetDefaults(Main.travelShop[j]);
 					num++;
 				}
 			}
@@ -2897,15 +2930,7 @@ public class Chest : IFixLoadedData
 			num++;
 			if (Main.hardMode)
 			{
-				if (Main.moonPhase < 4)
-				{
-					array[num].SetDefaults(3316);
-				}
-				else
-				{
-					array[num].SetDefaults(3315);
-				}
-				num++;
+				array[num++].SetDefaults(3316);
 				array[num].SetDefaults(3334);
 				num++;
 				if (NPC.downedMechBossAny)
@@ -2926,18 +2951,17 @@ public class Chest : IFixLoadedData
 			}
 			if (!Main.player[Main.myPlayer].ateArtisanBread && Main.moonPhase >= 3 && Main.moonPhase <= 5)
 			{
-				array[num].SetDefaults(5326);
-				num++;
+				array[num++].SetDefaults(5326);
 			}
 			break;
 		case 21:
 		{
 			bool flag = Main.hardMode && NPC.downedMechBossAny;
-			bool num11 = Main.hardMode && NPC.downedGolemBoss;
+			bool num7 = Main.hardMode && NPC.downedGolemBoss;
 			array[num].SetDefaults(353);
 			num++;
 			array[num].SetDefaults(3828);
-			if (num11)
+			if (num7)
 			{
 				array[num].shopCustomPrice = Item.buyPrice(0, 4);
 			}
@@ -2991,7 +3015,7 @@ public class Chest : IFixLoadedData
 				array[num].shopCustomPrice = 15;
 				array[num].shopSpecialCurrency = CustomCurrencyID.DefenderMedals;
 			}
-			if (num11)
+			if (num7)
 			{
 				num = 30;
 				array[num].SetDefaults(3820);
@@ -3065,7 +3089,7 @@ public class Chest : IFixLoadedData
 				array[num].shopSpecialCurrency = CustomCurrencyID.DefenderMedals;
 				num++;
 			}
-			if (num11)
+			if (num7)
 			{
 				num = 7;
 				array[num].SetDefaults(3871);
@@ -3120,11 +3144,12 @@ public class Chest : IFixLoadedData
 				array[num].shopSpecialCurrency = CustomCurrencyID.DefenderMedals;
 				num++;
 			}
-			num = ((!num11) ? ((!flag) ? 4 : 30) : 40);
+			num = ((!num7) ? ((!flag) ? 4 : 30) : 40);
 			break;
 		}
 		case 22:
 		{
+			int golferScoreAccumulated = Main.LocalPlayer.golferScoreAccumulated;
 			array[num++].SetDefaults(4587);
 			array[num++].SetDefaults(4590);
 			array[num++].SetDefaults(4589);
@@ -3135,8 +3160,7 @@ public class Chest : IFixLoadedData
 			array[num++].SetDefaults(4086);
 			array[num++].SetDefaults(4087);
 			array[num++].SetDefaults(4088);
-			int golferScoreAccumulated2 = Main.LocalPlayer.golferScoreAccumulated;
-			if (golferScoreAccumulated2 > 500)
+			if (golferScoreAccumulated >= 500)
 			{
 				array[num].SetDefaults(4039);
 				num++;
@@ -3153,7 +3177,7 @@ public class Chest : IFixLoadedData
 			array[num++].SetDefaults(4040);
 			array[num++].SetDefaults(4319);
 			array[num++].SetDefaults(4320);
-			if (golferScoreAccumulated2 > 1000)
+			if (golferScoreAccumulated > 1000)
 			{
 				array[num].SetDefaults(4591);
 				num++;
@@ -3169,12 +3193,12 @@ public class Chest : IFixLoadedData
 			array[num++].SetDefaults(4136);
 			array[num++].SetDefaults(4137);
 			array[num++].SetDefaults(4049);
-			if (golferScoreAccumulated2 > 500)
+			if (golferScoreAccumulated > 500)
 			{
 				array[num].SetDefaults(4265);
 				num++;
 			}
-			if (golferScoreAccumulated2 > 2000)
+			if (golferScoreAccumulated > 2000)
 			{
 				array[num].SetDefaults(4595);
 				num++;
@@ -3190,22 +3214,22 @@ public class Chest : IFixLoadedData
 					num++;
 				}
 			}
-			if (golferScoreAccumulated2 > 500)
+			if (golferScoreAccumulated > 500)
 			{
 				array[num].SetDefaults(4599);
 				num++;
 			}
-			if (golferScoreAccumulated2 >= 1000)
+			if (golferScoreAccumulated >= 1000)
 			{
 				array[num].SetDefaults(4600);
 				num++;
 			}
-			if (golferScoreAccumulated2 >= 2000)
+			if (golferScoreAccumulated >= 2000)
 			{
 				array[num].SetDefaults(4601);
 				num++;
 			}
-			if (golferScoreAccumulated2 >= 2000)
+			if (golferScoreAccumulated >= 2000)
 			{
 				if (Main.moonPhase == 0 || Main.moonPhase == 1)
 				{
@@ -3439,9 +3463,9 @@ public class Chest : IFixLoadedData
 			array[num++].SetDefaults(5088);
 			break;
 		}
-		bool num12 = type != 19 && type != 20 && type != 21;
+		bool num11 = type != 19 && type != 20 && type != 21;
 		bool flag2 = TeleportPylonsSystem.DoesPositionHaveEnoughNPCs(2, Main.LocalPlayer.Center.ToTileCoordinates16());
-		if (num12 && flag2 && !Main.player[Main.myPlayer].ZoneCorrupt && !Main.player[Main.myPlayer].ZoneCrimson)
+		if (num11 && flag2 && !Main.player[Main.myPlayer].ZoneCorrupt && !Main.player[Main.myPlayer].ZoneCrimson)
 		{
 			if (!Main.player[Main.myPlayer].ZoneSnow && !Main.player[Main.myPlayer].ZoneDesert && !Main.player[Main.myPlayer].ZoneBeach && !Main.player[Main.myPlayer].ZoneJungle && !Main.player[Main.myPlayer].ZoneHallow && !Main.player[Main.myPlayer].ZoneGlowshroom)
 			{
@@ -3452,7 +3476,7 @@ public class Chest : IFixLoadedData
 						array[num++].SetDefaults(4876);
 					}
 				}
-				else if ((double)(Main.player[Main.myPlayer].Center.Y / 16f) < Main.worldSurface && num < 39)
+				else if (!Main.player[Main.myPlayer].ShoppingZone_BelowSurface && num < 39)
 				{
 					array[num++].SetDefaults(4876);
 				}
@@ -3474,21 +3498,21 @@ public class Chest : IFixLoadedData
 			}
 			else if (Main.remixWorld)
 			{
-				if (!Main.player[Main.myPlayer].ZoneSnow && !Main.player[Main.myPlayer].ZoneDesert && !Main.player[Main.myPlayer].ZoneBeach && !Main.player[Main.myPlayer].ZoneJungle && !Main.player[Main.myPlayer].ZoneHallow && (double)(Main.player[Main.myPlayer].Center.Y / 16f) >= Main.worldSurface && num < 39)
+				if (!Main.player[Main.myPlayer].ZoneSnow && !Main.player[Main.myPlayer].ZoneDesert && !Main.player[Main.myPlayer].ZoneBeach && !Main.player[Main.myPlayer].ZoneJungle && !Main.player[Main.myPlayer].ZoneHallow && Main.player[Main.myPlayer].ShoppingZone_BelowSurface && num < 39)
 				{
 					array[num++].SetDefaults(4917);
 				}
 			}
-			else if (!Main.player[Main.myPlayer].ZoneSnow && !Main.player[Main.myPlayer].ZoneDesert && !Main.player[Main.myPlayer].ZoneBeach && !Main.player[Main.myPlayer].ZoneJungle && !Main.player[Main.myPlayer].ZoneHallow && !Main.player[Main.myPlayer].ZoneGlowshroom && (double)(Main.player[Main.myPlayer].Center.Y / 16f) >= Main.worldSurface && num < 39)
+			else if (!Main.player[Main.myPlayer].ZoneSnow && !Main.player[Main.myPlayer].ZoneDesert && !Main.player[Main.myPlayer].ZoneBeach && !Main.player[Main.myPlayer].ZoneJungle && !Main.player[Main.myPlayer].ZoneHallow && !Main.player[Main.myPlayer].ZoneGlowshroom && Main.player[Main.myPlayer].ShoppingZone_BelowSurface && num < 39)
 			{
 				array[num++].SetDefaults(4917);
 			}
 			bool flag3 = Main.player[Main.myPlayer].ZoneBeach && (double)Main.player[Main.myPlayer].position.Y < Main.worldSurface * 16.0;
 			if (Main.remixWorld)
 			{
-				float num13 = Main.player[Main.myPlayer].position.X / 16f;
-				float num14 = Main.player[Main.myPlayer].position.Y / 16f;
-				flag3 |= ((double)num13 < (double)Main.maxTilesX * 0.43 || (double)num13 > (double)Main.maxTilesX * 0.57) && (double)num14 > Main.rockLayer && num14 < (float)(Main.maxTilesY - 350);
+				float num12 = Main.player[Main.myPlayer].position.X / 16f;
+				float num13 = Main.player[Main.myPlayer].position.Y / 16f;
+				flag3 |= ((double)num12 < (double)Main.maxTilesX * 0.43 || (double)num12 > (double)Main.maxTilesX * 0.57) && (double)num13 > Main.rockLayer && num13 < (float)(Main.maxTilesY - 350);
 			}
 			if (flag3 && num < 39)
 			{
@@ -3502,14 +3526,14 @@ public class Chest : IFixLoadedData
 			{
 				array[num++].SetDefaults(4916);
 			}
-			if (Main.player[Main.myPlayer].ZoneGlowshroom && (!Main.remixWorld || Main.player[Main.myPlayer].Center.Y / 16f < (float)(Main.maxTilesY - 200)) && num < 39)
+			if (Main.player[Main.myPlayer].ZoneGlowshroom && (!Main.remixWorld || !Main.player[Main.myPlayer].ZoneUnderworldHeight) && num < 39)
 			{
 				array[num++].SetDefaults(4921);
 			}
 		}
-		for (int num15 = 0; num15 < num; num15++)
+		for (int num14 = 0; num14 < num; num14++)
 		{
-			array[num15].isAShopItem = true;
+			array[num14].isAShopItem = true;
 		}
 	}
 

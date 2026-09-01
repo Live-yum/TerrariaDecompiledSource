@@ -185,6 +185,8 @@ public class SceneMetrics
 
 	public int ActiveMusicBox { get; set; }
 
+	public bool MusicBoxSilence { get; set; }
+
 	public int SandTileCount { get; private set; }
 
 	public int MushroomTileCount { get; private set; }
@@ -469,7 +471,15 @@ public class SceneMetrics
 				case 139:
 					if (tile.frameX >= 36)
 					{
-						ActiveMusicBox = tile.frameY / 36;
+						int num = tile.frameY / 36;
+						if (num == 100)
+						{
+							MusicBoxSilence = true;
+						}
+						else
+						{
+							ActiveMusicBox = num;
+						}
 					}
 					break;
 				case 207:
@@ -674,7 +684,12 @@ public class SceneMetrics
 		ZoneGlowshroom = EnoughTilesForGlowingMushroom;
 		ZoneMeteor = EnoughTilesForMeteor;
 		ZoneGraveyard = EnoughTilesForGraveyard;
-		ZoneDungeon = EnoughTilesForDungeon && BelowSurface && Main.wallDungeon[tileSafely.wall];
+		double num = Main.worldSurface;
+		if (Main.drunkWorld || !Main.isThereAWorldSurface)
+		{
+			num = Math.Max(num, Main.dungeonY + 40);
+		}
+		ZoneDungeon = EnoughTilesForDungeon && (double)TileCenter.Y > num && Main.wallDungeon[tileSafely.wall];
 		ZoneLihzhardTemple = tileSafely.wall == 87;
 		ZoneGranite = tileSafely.wall == 184 || tileSafely.wall == 180;
 		ZoneMarble = tileSafely.wall == 183 || tileSafely.wall == 178;
@@ -698,36 +713,22 @@ public class SceneMetrics
 		ZoneWaterCandle = WaterCandleCount > 0;
 		ZonePeaceCandle = PeaceCandleCount > 0;
 		ZoneShadowCandle = ShadowCandleCount > 0;
-		if (!Main.dualDungeonsSeed || !BelowSurface || ZoneUnderworldHeight)
+		if (Main.dualDungeonsSeed && BelowSurface && !ZoneUnderworldHeight)
 		{
-			return;
-		}
-		NPCSpawningFlagsForDualDungeons nPCSpawningFlagsForDualDungeons = default(NPCSpawningFlagsForDualDungeons);
-		Point pt = new Point(TileCenter.X, TileCenter.Y);
-		int spawnTileType = 0;
-		int spawnWallType = 0;
-		for (int i = 0; i < 300; i++)
-		{
-			Tile tileSafely2 = Framing.GetTileSafely(pt);
-			if (nPCSpawningFlagsForDualDungeons.CanScan(tileSafely2) && nPCSpawningFlagsForDualDungeons.ScanZonesFor(scanOnly: true, pt.X, pt.Y, tileSafely2.type, tileSafely2.wall, npcSpawnPointIsInDualDungeon: true))
+			NPCSpawningFlagsForDualDungeons nPCSpawningFlagsForDualDungeons = default(NPCSpawningFlagsForDualDungeons);
+			for (int i = 0; i < 300 && (!nPCSpawningFlagsForDualDungeons.CanScan(TileCenter.X, TileCenter.Y + i) || !nPCSpawningFlagsForDualDungeons.ScanZonesFor(TileCenter.X, TileCenter.Y + i)); i++)
 			{
-				Tile tileSafely3 = Framing.GetTileSafely(new Point(pt.X, pt.Y - 1));
-				spawnTileType = tileSafely2.type;
-				spawnWallType = tileSafely3.wall;
-				break;
 			}
-			pt.Y++;
+			ZoneDungeon = nPCSpawningFlagsForDualDungeons.ZoneDungeon && Main.wallDungeon[tileSafely.wall];
+			ZoneSnow = nPCSpawningFlagsForDualDungeons.ZoneSnow;
+			ZoneGlowshroom = nPCSpawningFlagsForDualDungeons.ZoneGlowshroom;
+			ZoneCorrupt = nPCSpawningFlagsForDualDungeons.ZoneCorrupt;
+			ZoneCrimson = nPCSpawningFlagsForDualDungeons.ZoneCrimson;
+			ZoneJungle = nPCSpawningFlagsForDualDungeons.ZoneJungle;
+			ZoneHallow = nPCSpawningFlagsForDualDungeons.ZoneHallow;
+			ZoneLihzhardTemple = nPCSpawningFlagsForDualDungeons.ZoneLihzhardTemple;
+			ZoneUndergroundDesert = nPCSpawningFlagsForDualDungeons.ZoneUndergroundDesert && (WallID.Sets.Conversion.Sandstone[tileSafely.wall] || WallID.Sets.Conversion.HardenedSand[tileSafely.wall] || tileSafely.wall == 223) && !Main.wallHouse[tileSafely.wall];
 		}
-		nPCSpawningFlagsForDualDungeons.ScanZonesFor(scanOnly: false, pt.X, pt.Y, spawnTileType, spawnWallType, npcSpawnPointIsInDualDungeon: true);
-		ZoneDungeon = nPCSpawningFlagsForDualDungeons.ZoneDungeon;
-		ZoneSnow = nPCSpawningFlagsForDualDungeons.ZoneSnow;
-		ZoneGlowshroom = nPCSpawningFlagsForDualDungeons.ZoneGlowshroom;
-		ZoneCorrupt = nPCSpawningFlagsForDualDungeons.ZoneCorrupt;
-		ZoneCrimson = nPCSpawningFlagsForDualDungeons.ZoneCrimson;
-		ZoneJungle = nPCSpawningFlagsForDualDungeons.ZoneJungle;
-		ZoneHallow = nPCSpawningFlagsForDualDungeons.ZoneHallow;
-		ZoneLihzhardTemple = nPCSpawningFlagsForDualDungeons.ZoneLihzhardTemple;
-		ZoneUndergroundDesert = nPCSpawningFlagsForDualDungeons.ZoneUndergroundDesert;
 	}
 
 	private void ScanNPCPositions()
@@ -769,6 +770,10 @@ public class SceneMetrics
 		{
 			ActiveMusicBox = player.musicBox;
 		}
+		if (player.musicBoxSilence)
+		{
+			MusicBoxSilence = true;
+		}
 		if (player.happyFunTorchTime)
 		{
 			InTorchGodMinigame = true;
@@ -808,6 +813,7 @@ public class SceneMetrics
 		HasClock = false;
 		HasCatBast = false;
 		ActiveMusicBox = -1;
+		MusicBoxSilence = false;
 		WaterCandleCount = 0;
 		PeaceCandleCount = 0;
 		ShadowCandleCount = 0;
