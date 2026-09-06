@@ -47,19 +47,29 @@ jobs:
           $text = $text.Replace($needle, $replacement.Trim())
           Set-Content $path $text -Encoding UTF8
 
-          # net40 does not expose Array.Empty<T> in its reference mscorlib.
+          # Keep generated shards below GitHub Contents API size limits and stay net40-compatible.
           $exporter = Get-Content 'Terraria/ItemCatalogExporter.cs' -Raw
           $exporter = $exporter.Replace('Array.Empty<string>()', 'new string[0]')
+          $exporter = $exporter.Replace('private const int ShardSize = 1024;', 'private const int ShardSize = 512;')
           Set-Content 'Terraria/ItemCatalogExporter.cs' $exporter -Encoding UTF8
 
       - name: Setup MSBuild
         if: steps.existing.outputs.skip != 'true'
         uses: microsoft/setup-msbuild@v2
 
+      - name: Install .NET Framework 4.0 reference assemblies
+        if: steps.existing.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          nuget install Microsoft.NETFramework.ReferenceAssemblies.net40 -Version 1.0.3 -OutputDirectory .packages -NonInteractive
+          $ref = Resolve-Path '.packages/Microsoft.NETFramework.ReferenceAssemblies.net40.1.0.3/build/.NETFramework/v4.0'
+          "NET40_REF=$ref" >> $env:GITHUB_ENV
+          Write-Host "Using net40 reference assemblies from $ref"
+
       - name: Build TerrariaServer
         if: steps.existing.outputs.skip != 'true'
         shell: pwsh
-        run: msbuild TerrariaServer.csproj /m /p:Configuration=Release /p:Platform=x86
+        run: msbuild TerrariaServer.csproj /m /p:Configuration=Release /p:Platform=x86 /p:FrameworkPathOverride="$env:NET40_REF"
 
       - name: Run runtime exporter
         if: steps.existing.outputs.skip != 'true'
@@ -82,12 +92,17 @@ jobs:
           if ($manifest.itemIdCount -ne 6196) { throw "Unexpected ItemID.Count: $($manifest.itemIdCount)" }
           if ($manifest.itemCount -ne 6195) { throw "Unexpected item count: $($manifest.itemCount)" }
           if ($manifest.lastItemId -ne 6195) { throw "Unexpected max item id: $($manifest.lastItemId)" }
-          if ($manifest.shards.Count -ne 7) { throw "Unexpected shard count: $($manifest.shards.Count)" }
+          if ($manifest.shards.Count -ne 13) { throw "Unexpected shard count: $($manifest.shards.Count)" }
+          $seen = 0
           foreach ($shard in $manifest.shards) {
-            $payload = Get-Content (Join-Path 'catalog-export' $shard.file) -Raw | ConvertFrom-Json
+            $path = Join-Path 'catalog-export' $shard.file
+            $payload = Get-Content $path -Raw | ConvertFrom-Json
             if ($payload.items.Count -ne $shard.count) { throw "Shard count mismatch: $($shard.file)" }
+            if ((Get-Item $path).Length -gt 950000) { throw "Shard too large for safe transfer: $($shard.file)" }
+            $seen += $payload.items.Count
           }
-          Write-Host "Validated $($manifest.itemCount) runtime-derived items."
+          if ($seen -ne 6195) { throw "Combined item count mismatch: $seen" }
+          Write-Host "Validated $seen runtime-derived items across $($manifest.shards.Count) shards."
 
       - name: Commit generated export
         if: steps.existing.outputs.skip != 'true'
