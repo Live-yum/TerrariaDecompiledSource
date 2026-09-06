@@ -30,6 +30,15 @@ jobs:
           if ($hash -ne 'D87E3FAF08637F6BE8882C63E7F11FB7E792B0230006309618473ECE0F863E1E') { throw "Unexpected TerrariaServer.exe SHA256: $hash" }
           Write-Host "Using $($exe.FullName) SHA256=$hash"
 
+      - name: Install Microsoft XNA Framework 4.0 Refresh
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest 'https://download.microsoft.com/download/5/3/A/53A804C8-EC78-43CD-A0F0-2FB4D45603D3/xnafx40_redist.msi' -OutFile xnafx40_redist.msi
+          $process = Start-Process msiexec.exe -ArgumentList '/i', (Resolve-Path xnafx40_redist.msi), '/qn', '/norestart' -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) { throw "XNA installer failed with exit code $($process.ExitCode)" }
+          Write-Host "XNA Framework installer exit code: $($process.ExitCode)"
+
       - name: Probe official Item.SetDefaults runtime in x86 CLR
         shell: cmd
         run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\probe-official-item-runtime.ps1 -ServerExe "%TERRARIA_SERVER_EXE%"'
