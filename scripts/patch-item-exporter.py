@@ -61,7 +61,10 @@ list_marker = '$tooltipCountZh = 0\n$nextId = 1'
 if '$deprecatedCount = 0' not in text:
     if list_marker not in text:
         raise SystemExit('counter insertion point missing')
-    text = text.replace(list_marker, '$tooltipCountZh = 0\n$deprecatedCount = 0\n$nextId = 1')
+    text = text.replace(
+        list_marker,
+        '$tooltipCountZh = 0\n$deprecatedCount = 0\n$unlocalizedIds = New-Object Collections.Generic.List[int]\n$nextId = 1',
+    )
 
 old_resolved = r'''    $resolvedType = [int]$itemType.GetField('type', $flags).GetValue($item)
     if ($resolvedType -le 0 -or $resolvedType -ge $count) { throw "Invalid resolved type for ${id}: $resolvedType" }
@@ -100,7 +103,11 @@ new_resolved = r'''    $resolvedType = [int]$itemType.GetField('type', $flags).G
     if (-not $enNames.ContainsKey($localizationKey) -or -not $zhNames.ContainsKey($localizationKey)) { $localizationKey = $resolvedInternalName }
     $enName = if ($enNames.ContainsKey($localizationKey)) { $enNames[$localizationKey] } else { $null }
     $zhName = if ($zhNames.ContainsKey($localizationKey)) { $zhNames[$localizationKey] } else { $null }
-    if (([string]::IsNullOrWhiteSpace($enName) -or [string]::IsNullOrWhiteSpace($zhName)) -and -not $isDeprecated) { $missingLocalizedNames.Add($id) }
+    $hasLocalizedName = -not [string]::IsNullOrWhiteSpace($enName) -and -not [string]::IsNullOrWhiteSpace($zhName)
+    if (-not $hasLocalizedName) {
+        $unlocalizedIds.Add($id)
+        Write-Host "Unlocalized ItemID $id/$requestedInternalName (resolved=$resolvedType/$resolvedInternalName deprecated=$isDeprecated)"
+    }
 '''
 if 'Deprecated tombstone' not in text:
     if old_resolved not in text:
@@ -111,23 +118,40 @@ record_marker = '        isAlias = $isAlias\n        localizationInternalName = 
 if '        isDeprecated = $isDeprecated' not in text:
     if record_marker not in text:
         raise SystemExit('record flag insertion point missing')
-    text = text.replace(record_marker, '        isAlias = $isAlias\n        isDeprecated = $isDeprecated\n        localizationInternalName = $localizationKey')
+    text = text.replace(
+        record_marker,
+        '        isAlias = $isAlias\n        isDeprecated = $isDeprecated\n        hasLocalizedName = $hasLocalizedName\n        localizationInternalName = $localizationKey',
+    )
+
+# The original exporter treated missing ItemName entries as an error. Terraria
+# intentionally has a handful of internal IDs without ItemName localization, so
+# preserve that fact instead of fabricating display names.
+old_missing_throw = 'if ($missingLocalizedNames.Count -gt 0) { throw "Missing localized names for IDs: $([string]::Join(\',\', $missingLocalizedNames.ToArray()))" }'
+if old_missing_throw in text:
+    text = text.replace(old_missing_throw, 'Write-Host "Unlocalized ItemID entries: $($unlocalizedIds.Count) [$([string]::Join(\',\', $unlocalizedIds.ToArray()))]"')
 
 manifest_marker = '    aliasCount = $aliases.Count\n    aliases = $aliases.ToArray()'
 if '    deprecatedCount = $deprecatedCount' not in text:
     if manifest_marker not in text:
         raise SystemExit('manifest insertion point missing')
-    text = text.replace(manifest_marker, '    aliasCount = $aliases.Count\n    deprecatedCount = $deprecatedCount\n    aliases = $aliases.ToArray()')
+    text = text.replace(
+        manifest_marker,
+        '    aliasCount = $aliases.Count\n    deprecatedCount = $deprecatedCount\n    unlocalizedCount = $unlocalizedIds.Count\n    unlocalizedIds = $unlocalizedIds.ToArray()\n    aliases = $aliases.ToArray()',
+    )
 
 readme_marker = '- Compatibility/alias IDs resolved by runtime: $($aliases.Count)'
 if '- Deprecated ItemID entries:' not in text:
     if readme_marker not in text:
         raise SystemExit('README insertion point missing')
-    text = text.replace(readme_marker, readme_marker + '\n- Deprecated ItemID entries: $deprecatedCount')
+    text = text.replace(
+        readme_marker,
+        readme_marker + '\n- Deprecated ItemID entries: $deprecatedCount\n- ItemID entries with no ItemName localization: $($unlocalizedIds.Count)',
+    )
 
 PATH.write_text(text, encoding='utf-8', newline='\n')
 print('Patched exporter:', PATH)
 print('  alias-aware: yes')
 print('  deprecated-aware: yes')
+print('  unlocalized-internal-aware: yes')
 print('  player state seed: yes')
 print('  explicit generic-list serialization: yes')
