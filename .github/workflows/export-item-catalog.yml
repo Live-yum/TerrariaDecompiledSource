@@ -17,6 +17,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fix and syntax-check exporter for Windows PowerShell 5
+        shell: powershell
+        run: |
+          $path = 'scripts/export-official-item-catalog-v2.ps1'
+          $text = Get-Content $path -Raw -Encoding UTF8
+          $fixed = $text.Replace('Invalid resolved type for $id: $resolvedType', 'Invalid resolved type for ${id}: $resolvedType')
+          if ($fixed -ne $text) {
+            [IO.File]::WriteAllText((Resolve-Path $path), $fixed, (New-Object Text.UTF8Encoding($false)))
+          }
+          [void][scriptblock]::Create((Get-Content $path -Raw -Encoding UTF8))
+          Write-Host 'Exporter PowerShell syntax is valid.'
+
       - name: Download official Terraria 1.4.5.8 dedicated server
         shell: powershell
         run: |
@@ -95,15 +107,15 @@ jobs:
         if: always()
         run: git checkout -- Terraria.Localization.Content.en-US.Items.json Terraria.Localization.Content.zh-Hans.Items.json
 
-      - name: Commit deterministic export when changed
+      - name: Commit deterministic exporter and database when changed
         shell: powershell
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add catalog-export
+          git add scripts/export-official-item-catalog-v2.ps1 catalog-export
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 0) {
-            Write-Host 'Catalog export already matches committed data.'
+            Write-Host 'Exporter and catalog already match committed data.'
             exit 0
           }
           git commit -m 'chore: export Terraria 1.4.5.8 item database'
