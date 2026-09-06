@@ -8,20 +8,33 @@ $ServerExe = (Resolve-Path $ServerExe).Path
 $serverDir = Split-Path -Parent $ServerExe
 $script:serverAssembly = $null
 
+function Write-ExceptionChain([Exception] $error, [string] $prefix = 'exception') {
+    $level = 0
+    while ($error) {
+        Write-Host ("{0}[{1}] {2}: {3}" -f $prefix, $level, $error.GetType().FullName, $error.Message)
+        if ($error.StackTrace) { Write-Host $error.StackTrace }
+        $error = $error.InnerException
+        $level += 1
+    }
+}
+
 [AppDomain]::CurrentDomain.add_AssemblyResolve({
     param($sender, $args)
     try {
         $name = New-Object System.Reflection.AssemblyName($args.Name)
         $simple = $name.Name
+        Write-Host "AssemblyResolve: $simple"
         foreach ($candidate in @(
             (Join-Path $serverDir ($simple + '.dll')),
-            (Join-Path $serverDir ($simple + '.exe')),
-            (Join-Path $serverDir 'FNA.dll')
+            (Join-Path $serverDir ($simple + '.exe'))
         )) {
             if (Test-Path $candidate) {
                 try {
                     $loaded = [Reflection.Assembly]::LoadFrom($candidate)
-                    if ($loaded.GetName().Name -eq $simple) { return $loaded }
+                    if ($loaded.GetName().Name -eq $simple) {
+                        Write-Host "Resolved $simple from $candidate"
+                        return $loaded
+                    }
                 } catch {}
             }
         }
@@ -30,6 +43,7 @@ $script:serverAssembly = $null
                 Where-Object { $_ -eq ($simple + '.dll') -or $_ -like ('*.' + $simple + '.dll') } |
                 Select-Object -First 1
             if ($resource) {
+                Write-Host "Resolving $simple from embedded resource $resource"
                 $stream = $script:serverAssembly.GetManifestResourceStream($resource)
                 try {
                     $buffer = New-Object byte[] $stream.Length
@@ -40,7 +54,9 @@ $script:serverAssembly = $null
                 }
             }
         }
-    } catch {}
+    } catch {
+        Write-Host "AssemblyResolve failed for $($args.Name): $($_.Exception.Message)"
+    }
     return $null
 })
 
@@ -57,7 +73,12 @@ $flags = [Reflection.BindingFlags]'Public,NonPublic,Static,Instance'
 $itemIdType = $script:serverAssembly.GetType('Terraria.ID.ItemID', $true)
 $itemType = $script:serverAssembly.GetType('Terraria.Item', $true)
 $countField = $itemIdType.GetField('Count', $flags)
-$count = [int]$countField.GetValue($null)
+try {
+    $count = [int]$countField.GetValue($null)
+} catch {
+    Write-ExceptionChain $_.Exception 'ItemID.Count'
+    throw
+}
 Write-Host "ItemID.Count=$count"
 if ($count -ne 6196) { throw "Expected ItemID.Count=6196, got $count" }
 
@@ -89,10 +110,8 @@ for ($i = 1; $i -lt $params.Count; $i++) {
 }
 try {
     [void]$setDefaults.Invoke($item, $invokeArgs)
-} catch [Reflection.TargetInvocationException] {
-    $inner = $_.Exception.InnerException
-    Write-Host "SetDefaults inner exception: $($inner.GetType().FullName): $($inner.Message)"
-    Write-Host $inner.StackTrace
+} catch {
+    Write-ExceptionChain $_.Exception 'SetDefaults'
     throw
 }
 
