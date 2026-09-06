@@ -17,51 +17,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fix and syntax-check exporter for Windows PowerShell 5
+      - name: Patch and syntax-check exporter
         shell: powershell
         run: |
-          $path = 'scripts/export-official-item-catalog-v2.ps1'
-          $text = Get-Content $path -Raw -Encoding UTF8
-          $fixed = $text.Replace('Invalid resolved type for $id: $resolvedType', 'Invalid resolved type for ${id}: $resolvedType')
-          $fixed = $fixed.Replace('items = @($shardItems)', 'items = $shardItems.ToArray()')
-          $fixed = $fixed.Replace('aliases = @($aliases)', 'aliases = $aliases.ToArray()')
-          $fixed = $fixed.Replace('shards = @($shards)', 'shards = $shards.ToArray()')
-          if (-not $fixed.Contains("Seeded Main.player[Main.myPlayer]")) {
-            $marker = 'if ($launchParameters) { $launchParameters.Clear() }'
-            if (-not $fixed.Contains($marker)) { throw 'Player initialization insertion point not found' }
-            $playerInit = @'
-          
-          # ItemIDs 269-271 (Familiar Shirt/Pants/Wig) read appearance colors
-          # from Main.player[Main.myPlayer] in Item.SetDefaults1. A normal game/server
-          # startup creates the current Player before content samples are built; the
-          # headless reflection exporter must establish the same minimum state.
-          $mainType = $script:serverAssembly.GetType('Terraria.Main', $true)
-          $playerType = $script:serverAssembly.GetType('Terraria.Player', $true)
-          $playerField = $mainType.GetField('player', $flags)
-          $myPlayerField = $mainType.GetField('myPlayer', $flags)
-          if (-not $playerField -or -not $myPlayerField) { throw 'Main.player/Main.myPlayer fields not found' }
-          $players = $playerField.GetValue($null)
-          $myPlayer = [int]$myPlayerField.GetValue($null)
-          if ($null -eq $players -or $players.Length -le 0) {
-              $players = [Array]::CreateInstance($playerType, 256)
-              $playerField.SetValue($null, $players)
-          }
-          if ($myPlayer -lt 0 -or $myPlayer -ge $players.Length) {
-              $myPlayer = 0
-              $myPlayerField.SetValue($null, $myPlayer)
-          }
-          if ($null -eq $players.GetValue($myPlayer)) {
-              $players.SetValue([Activator]::CreateInstance($playerType), $myPlayer)
-          }
-          Write-Host "Seeded Main.player[Main.myPlayer] at index $myPlayer for appearance-dependent item defaults"
-          '@
-            $fixed = $fixed.Replace($marker, $marker + "`r`n" + $playerInit.Trim())
-          }
-          if ($fixed -ne $text) {
-            [IO.File]::WriteAllText((Resolve-Path $path), $fixed, (New-Object Text.UTF8Encoding($false)))
-          }
-          [void][scriptblock]::Create((Get-Content $path -Raw -Encoding UTF8))
-          Write-Host 'Exporter PowerShell syntax is valid and runtime prerequisites are present.'
+          python scripts/patch-item-exporter.py
+          [void][scriptblock]::Create((Get-Content 'scripts/export-official-item-catalog-v2.ps1' -Raw -Encoding UTF8))
+          Write-Host 'Exporter syntax and compatibility patch validated.'
 
       - name: Download official Terraria 1.4.5.8 dedicated server
         shell: powershell
@@ -83,7 +44,6 @@ jobs:
           Invoke-WebRequest 'https://download.microsoft.com/download/5/3/A/53A804C8-EC78-43CD-A0F0-2FB4D45603D3/xnafx40_redist.msi' -OutFile xnafx40_redist.msi
           $process = Start-Process msiexec.exe -ArgumentList '/i', (Resolve-Path xnafx40_redist.msi), '/qn', '/norestart' -Wait -PassThru
           if ($process.ExitCode -notin @(0, 3010)) { throw "XNA installer failed with exit code $($process.ExitCode)" }
-          Write-Host "XNA Framework installer exit code: $($process.ExitCode)"
 
       - name: Probe representative Item.SetDefaults calls
         shell: cmd
@@ -106,13 +66,13 @@ jobs:
           $manifest = Get-Content 'catalog-export/manifest.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($manifest.terrariaVersion -ne '1.4.5.8') { throw 'Unexpected Terraria version' }
           if ($manifest.sourceCommit -ne '8255d34616c780af12079425ac92a0a7aed87d71') { throw 'Unexpected source commit' }
-          if ($manifest.itemIdCount -ne 6196) { throw "Unexpected ItemID.Count: $($manifest.itemIdCount)" }
-          if ($manifest.itemCount -ne 6195 -or $manifest.lastItemId -ne 6195) { throw 'Incomplete ItemID range' }
+          if ($manifest.itemIdCount -ne 6196 -or $manifest.itemCount -ne 6195 -or $manifest.lastItemId -ne 6195) { throw 'Incomplete ItemID range' }
           if ($manifest.shards.Count -ne 25) { throw "Expected 25 shards, got $($manifest.shards.Count)" }
           if ($manifest.gameplayFields.Count -lt 35) { throw "Too few gameplay fields: $($manifest.gameplayFields.Count)" }
           $nextId = 1
           $seen = 0
           $seenAliases = 0
+          $seenDeprecated = 0
           foreach ($shard in $manifest.shards) {
             $path = Join-Path 'catalog-export' $shard.file
             if (-not (Test-Path $path)) { throw "Missing shard $path" }
@@ -122,19 +82,23 @@ jobs:
             $payload = Get-Content $path -Raw -Encoding UTF8 | ConvertFrom-Json
             foreach ($item in $payload.items) {
               if ($item.id -ne $nextId) { throw "ID gap: expected $nextId got $($item.id)" }
-              if ($item.resolvedType -le 0 -or $item.resolvedType -ge 6196) { throw "Invalid resolved type at $($item.id): $($item.resolvedType)" }
+              if ($item.resolvedType -lt 0 -or $item.resolvedType -ge 6196) { throw "Invalid resolved type at $($item.id): $($item.resolvedType)" }
+              if ($item.resolvedType -eq 0 -and -not $item.isDeprecated) { throw "Non-deprecated ID resolved to type 0: $($item.id)" }
               if ($item.gameplay.type -ne $item.resolvedType) { throw "Runtime type mismatch at $($item.id)" }
-              if ([bool]$item.isAlias -ne ($item.id -ne $item.resolvedType)) { throw "Alias flag mismatch at $($item.id)" }
-              if ($item.isAlias) { $seenAliases += 1 }
-              if (-not $item.internalName -or -not $item.resolvedInternalName -or -not $item.name.'en-US' -or -not $item.name.'zh-Hans') { throw "Missing localized identity at $($item.id)" }
+              if ([bool]$item.isAlias -ne ($item.resolvedType -gt 0 -and $item.id -ne $item.resolvedType)) { throw "Alias flag mismatch at $($item.id)" }
+              if ($item.isAlias) { $seenAliases++ }
+              if ($item.isDeprecated) { $seenDeprecated++ }
+              if (-not $item.internalName -or -not $item.resolvedInternalName) { throw "Missing ItemID identity at $($item.id)" }
+              if ((-not $item.isDeprecated) -and (-not $item.name.'en-US' -or -not $item.name.'zh-Hans')) { throw "Missing localized identity at $($item.id)" }
               if ($null -eq $item.gameplay.maxStack -or $null -eq $item.gameplay.value -or $null -eq $item.gameplay.damage) { throw "Missing gameplay core fields at $($item.id)" }
-              $nextId += 1
-              $seen += 1
+              $nextId++
+              $seen++
             }
           }
           if ($seen -ne 6195 -or $nextId -ne 6196) { throw "Coverage mismatch: $seen IDs" }
-          if ($seenAliases -ne $manifest.aliasCount) { throw "Alias count mismatch: manifest=$($manifest.aliasCount) actual=$seenAliases" }
-          Write-Host "Validated all $seen ItemID entries; aliases=$seenAliases fields=$($manifest.gameplayFields.Count) zh-Hans item tooltips=$($manifest.tooltipCount.'zh-Hans')"
+          if ($seenAliases -ne $manifest.aliasCount) { throw "Alias count mismatch" }
+          if ($seenDeprecated -ne $manifest.deprecatedCount) { throw "Deprecated count mismatch" }
+          Write-Host "Validated all $seen ItemID entries; aliases=$seenAliases deprecated=$seenDeprecated fields=$($manifest.gameplayFields.Count) zh-Hans item tooltips=$($manifest.tooltipCount.'zh-Hans')"
 
       - name: Restore source localization files
         shell: powershell
