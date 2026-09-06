@@ -26,9 +26,10 @@ jobs:
           $exe = Get-ChildItem official-server -Recurse -Filter TerrariaServer.exe | Where-Object { $_.FullName -match '[\\/]Windows[\\/]' } | Select-Object -First 1
           if (-not $exe) { throw 'Windows TerrariaServer.exe not found in official archive' }
           "TERRARIA_SERVER_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          Write-Host "Using $($exe.FullName)"
-          Get-FileHash $exe.FullName -Algorithm SHA256
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+          if ($hash -ne 'D87E3FAF08637F6BE8882C63E7F11FB7E792B0230006309618473ECE0F863E1E') { throw "Unexpected TerrariaServer.exe SHA256: $hash" }
+          Write-Host "Using $($exe.FullName) SHA256=$hash"
 
-      - name: Probe official Item.SetDefaults runtime
-        shell: powershell
-        run: .\scripts\probe-official-item-runtime.ps1 -ServerExe $env:TERRARIA_SERVER_EXE
+      - name: Probe official Item.SetDefaults runtime in x86 CLR
+        shell: cmd
+        run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\probe-official-item-runtime.ps1 -ServerExe "%TERRARIA_SERVER_EXE%"'
