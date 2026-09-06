@@ -43,6 +43,26 @@ jobs:
         shell: cmd
         run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\probe-official-item-runtime.ps1 -ServerExe "%TERRARIA_SERVER_EXE%"'
 
+      - name: Normalize item localization for Windows PowerShell 5
+        shell: powershell
+        run: |
+          @'
+          const fs = require('fs');
+          for (const file of [
+            'Terraria.Localization.Content.en-US.Items.json',
+            'Terraria.Localization.Content.zh-Hans.Items.json'
+          ]) {
+            const root = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const reduced = {
+              ItemName: root.ItemName || {},
+              ItemTooltip: root.ItemTooltip || {}
+            };
+            fs.writeFileSync(file, JSON.stringify(reduced), 'utf8');
+            console.log(`${file}: names=${Object.keys(reduced.ItemName).length} tooltips=${Object.keys(reduced.ItemTooltip).length}`);
+          }
+          '@ | Set-Content -Path normalize-item-localization.cjs -Encoding UTF8
+          node normalize-item-localization.cjs
+
       - name: Export all 6195 items from official runtime
         shell: cmd
         run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\export-official-item-catalog.ps1 -ServerExe "%TERRARIA_SERVER_EXE%" -OutputDir "catalog-export"'
