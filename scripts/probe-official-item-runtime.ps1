@@ -91,6 +91,18 @@ if (-not $loadedNames.ContainsKey('ReLogic')) {
 }
 
 $flags = [Reflection.BindingFlags]'Public,NonPublic,Static,Instance'
+
+# Program.LaunchGame normally assigns Program.SavePath before Main is touched.
+# Reflection probes bypass LaunchGame, so reproduce that one prerequisite using
+# an isolated temp directory. This keeps Main's static constructor on its normal
+# code path instead of patching or suppressing it.
+$programType = $script:serverAssembly.GetType('Terraria.Program', $true)
+$savePathField = $programType.GetField('SavePath', $flags)
+$probeSavePath = Join-Path ([IO.Path]::GetTempPath()) 'terraria-item-catalog-probe'
+[IO.Directory]::CreateDirectory($probeSavePath) | Out-Null
+$savePathField.SetValue($null, $probeSavePath)
+Write-Host "Program.SavePath=$probeSavePath"
+
 $itemIdType = $script:serverAssembly.GetType('Terraria.ID.ItemID', $true)
 $itemType = $script:serverAssembly.GetType('Terraria.Item', $true)
 $countField = $itemIdType.GetField('Count', $flags)
