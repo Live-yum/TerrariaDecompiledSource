@@ -43,25 +43,9 @@ jobs:
         shell: cmd
         run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\probe-official-item-runtime.ps1 -ServerExe "%TERRARIA_SERVER_EXE%"'
 
-      - name: Normalize item localization for Windows PowerShell 5
-        shell: powershell
-        run: |
-          @'
-          const fs = require('fs');
-          for (const file of [
-            'Terraria.Localization.Content.en-US.Items.json',
-            'Terraria.Localization.Content.zh-Hans.Items.json'
-          ]) {
-            const root = JSON.parse(fs.readFileSync(file, 'utf8'));
-            const reduced = {
-              ItemName: root.ItemName || {},
-              ItemTooltip: root.ItemTooltip || {}
-            };
-            fs.writeFileSync(file, JSON.stringify(reduced), 'utf8');
-            console.log(`${file}: names=${Object.keys(reduced.ItemName).length} tooltips=${Object.keys(reduced.ItemTooltip).length}`);
-          }
-          '@ | Set-Content -Path normalize-item-localization.cjs -Encoding UTF8
-          node normalize-item-localization.cjs
+      - name: Normalize Terraria localization with bundled Newtonsoft.Json
+        shell: cmd
+        run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\normalize-item-localization.ps1 -ServerExe "%TERRARIA_SERVER_EXE%" -Paths "Terraria.Localization.Content.en-US.Items.json","Terraria.Localization.Content.zh-Hans.Items.json"'
 
       - name: Export all 6195 items from official runtime
         shell: cmd
@@ -96,6 +80,10 @@ jobs:
           }
           if ($seen -ne 6195 -or $nextId -ne 6196) { throw "Coverage mismatch: $seen items" }
           Write-Host "Validated all $seen Terraria 1.4.5.8 items. zh-Hans tooltips=$($manifest.tooltipCount.'zh-Hans')"
+
+      - name: Restore source localization files
+        shell: powershell
+        run: git checkout -- Terraria.Localization.Content.en-US.Items.json Terraria.Localization.Content.zh-Hans.Items.json
 
       - name: Commit deterministic export when changed
         shell: powershell
