@@ -17,125 +17,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check whether export already exists
-        id: existing
-        shell: pwsh
+      - name: Download official Terraria 1.4.5.8 dedicated server
+        shell: powershell
         run: |
-          if (Test-Path 'catalog-export/manifest.json') {
-            'skip=true' >> $env:GITHUB_OUTPUT
-          } else {
-            'skip=false' >> $env:GITHUB_OUTPUT
-          }
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest 'https://terraria.org/api/download/pc-dedicated-server/terraria-server-1458.zip' -OutFile terraria-server-1458.zip
+          Expand-Archive terraria-server-1458.zip -DestinationPath official-server
+          $exe = Get-ChildItem official-server -Recurse -Filter TerrariaServer.exe | Where-Object { $_.FullName -match '[\\/]Windows[\\/]' } | Select-Object -First 1
+          if (-not $exe) { throw 'Windows TerrariaServer.exe not found in official archive' }
+          "TERRARIA_SERVER_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Using $($exe.FullName)"
+          Get-FileHash $exe.FullName -Algorithm SHA256
 
-      - name: Prepare exporter entry point and net40 references
-        if: steps.existing.outputs.skip != 'true'
-        shell: pwsh
-        run: |
-          $path = 'Terraria/Program.cs'
-          $text = Get-Content $path -Raw
-          $needle = 'using Main main = new Main();'
-          if (-not $text.Contains($needle)) { throw "Program.cs hook point not found" }
-          $replacement = @'
-          using Main main = new Main();
-          if (LaunchParameters.ContainsKey("-exportitemcatalog"))
-          {
-              string exportPath = LaunchParameters["-exportitemcatalog"];
-              ItemCatalogExporter.Export(string.IsNullOrWhiteSpace(exportPath) ? "catalog-export" : exportPath);
-              return;
-          }
-          '@
-          $text = $text.Replace($needle, $replacement.Trim())
-          Set-Content $path $text -Encoding UTF8
-
-          # Keep generated shards below GitHub Contents API size limits and stay net40-compatible.
-          $exporter = Get-Content 'Terraria/ItemCatalogExporter.cs' -Raw
-          $exporter = $exporter.Replace('Array.Empty<string>()', 'new string[0]')
-          $exporter = $exporter.Replace('private const int ShardSize = 1024;', 'private const int ShardSize = 512;')
-          Set-Content 'Terraria/ItemCatalogExporter.cs' $exporter -Encoding UTF8
-
-          # windows-2025 no longer ships the .NET Framework 4.0 targeting pack.
-          # ReferenceAssemblies is the supported build-time replacement and does not retarget the project.
-          $projectPath = 'TerrariaServer.csproj'
-          $project = Get-Content $projectPath -Raw
-          $packageReference = @'
-            <ItemGroup>
-              <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
-            </ItemGroup>
-          '@
-          if (-not $project.Contains('Microsoft.NETFramework.ReferenceAssemblies')) {
-            $project = $project.Replace('</Project>', $packageReference.Trim() + "`r`n</Project>")
-            Set-Content $projectPath $project -Encoding UTF8
-          }
-
-      - name: Setup MSBuild
-        if: steps.existing.outputs.skip != 'true'
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Build TerrariaServer
-        if: steps.existing.outputs.skip != 'true'
-        shell: pwsh
-        run: msbuild TerrariaServer.csproj /restore /m /p:Configuration=Release /p:Platform=x86
-
-      - name: Run runtime exporter
-        if: steps.existing.outputs.skip != 'true'
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Recurse -Filter TerrariaServer.exe |
-            Where-Object { $_.FullName -match '[\\/]bin[\\/]' } |
-            Select-Object -First 1
-          if (-not $exe) { throw 'TerrariaServer.exe was not produced' }
-          Write-Host "Exporter executable: $($exe.FullName)"
-          & $exe.FullName '-exportitemcatalog' (Join-Path $pwd 'catalog-export')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Validate runtime export
-        if: steps.existing.outputs.skip != 'true'
-        shell: pwsh
-        run: |
-          $manifest = Get-Content 'catalog-export/manifest.json' -Raw | ConvertFrom-Json
-          if ($manifest.terrariaVersion -ne '1.4.5.8') { throw 'Unexpected Terraria version' }
-          if ($manifest.sourceCommit -ne '8255d34616c780af12079425ac92a0a7aed87d71') { throw 'Unexpected source commit' }
-          if ($manifest.itemIdCount -ne 6196) { throw "Unexpected ItemID.Count: $($manifest.itemIdCount)" }
-          if ($manifest.itemCount -ne 6195) { throw "Unexpected item count: $($manifest.itemCount)" }
-          if ($manifest.lastItemId -ne 6195) { throw "Unexpected max item id: $($manifest.lastItemId)" }
-          if ($manifest.shards.Count -ne 13) { throw "Unexpected shard count: $($manifest.shards.Count)" }
-          $seen = 0
-          $nextId = 1
-          foreach ($shard in $manifest.shards) {
-            $path = Join-Path 'catalog-export' $shard.file
-            $payload = Get-Content $path -Raw | ConvertFrom-Json
-            if ($payload.items.Count -ne $shard.count) { throw "Shard count mismatch: $($shard.file)" }
-            if ((Get-Item $path).Length -gt 950000) { throw "Shard too large for safe transfer: $($shard.file)" }
-            foreach ($item in $payload.items) {
-              if ($item.id -ne $nextId) { throw "ID gap at $nextId (got $($item.id))" }
-              if ($item.gameplay.type -ne $item.id) { throw "SetDefaults type mismatch at $($item.id)" }
-              if (-not $item.internalName) { throw "Missing ItemID name at $($item.id)" }
-              $nextId += 1
-            }
-            $seen += $payload.items.Count
-          }
-          if ($seen -ne 6195 -or $nextId -ne 6196) { throw "Combined item coverage mismatch: $seen" }
-          Write-Host "Validated $seen runtime-derived items across $($manifest.shards.Count) shards."
-
-      - name: Commit generated export
-        if: steps.existing.outputs.skip != 'true'
-        shell: pwsh
-        run: |
-          git checkout -- Terraria/Program.cs Terraria/ItemCatalogExporter.cs TerrariaServer.csproj
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add catalog-export
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) { throw 'Exporter produced no committed data' }
-          git commit -m 'chore: export Terraria 1.4.5.8 item catalog'
-          git push
-
-      - name: Verify existing committed export
-        if: steps.existing.outputs.skip == 'true'
-        shell: pwsh
-        run: |
-          $manifest = Get-Content 'catalog-export/manifest.json' -Raw | ConvertFrom-Json
-          if ($manifest.itemCount -ne 6195 -or $manifest.lastItemId -ne 6195) {
-            throw 'Committed catalog export is invalid'
-          }
-          Write-Host "Existing committed export contains $($manifest.itemCount) items."
+      - name: Probe official Item.SetDefaults runtime
+        shell: powershell
+        run: .\scripts\probe-official-item-runtime.ps1 -ServerExe $env:TERRARIA_SERVER_EXE
