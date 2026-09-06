@@ -1,0 +1,113 @@
+name: Export Terraria item catalog
+
+on:
+  push:
+    branches:
+      - tooling/item-catalog-export-1458
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether export already exists
+        id: existing
+        shell: pwsh
+        run: |
+          if (Test-Path 'catalog-export/manifest.json') {
+            'skip=true' >> $env:GITHUB_OUTPUT
+          } else {
+            'skip=false' >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Prepare exporter entry point
+        if: steps.existing.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $path = 'Terraria/Program.cs'
+          $text = Get-Content $path -Raw
+          $needle = 'using Main main = new Main();'
+          if (-not $text.Contains($needle)) { throw "Program.cs hook point not found" }
+          $replacement = @'
+          using Main main = new Main();
+          if (LaunchParameters.ContainsKey("-exportitemcatalog"))
+          {
+              string exportPath = LaunchParameters["-exportitemcatalog"];
+              ItemCatalogExporter.Export(string.IsNullOrWhiteSpace(exportPath) ? "catalog-export" : exportPath);
+              return;
+          }
+          '@
+          $text = $text.Replace($needle, $replacement.Trim())
+          Set-Content $path $text -Encoding UTF8
+
+          # net40 does not expose Array.Empty<T> in its reference mscorlib.
+          $exporter = Get-Content 'Terraria/ItemCatalogExporter.cs' -Raw
+          $exporter = $exporter.Replace('Array.Empty<string>()', 'new string[0]')
+          Set-Content 'Terraria/ItemCatalogExporter.cs' $exporter -Encoding UTF8
+
+      - name: Setup MSBuild
+        if: steps.existing.outputs.skip != 'true'
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build TerrariaServer
+        if: steps.existing.outputs.skip != 'true'
+        shell: pwsh
+        run: msbuild TerrariaServer.csproj /m /p:Configuration=Release /p:Platform=x86
+
+      - name: Run runtime exporter
+        if: steps.existing.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter TerrariaServer.exe |
+            Where-Object { $_.FullName -match '[\\/]bin[\\/]' } |
+            Select-Object -First 1
+          if (-not $exe) { throw 'TerrariaServer.exe was not produced' }
+          Write-Host "Exporter executable: $($exe.FullName)"
+          & $exe.FullName '-exportitemcatalog' (Join-Path $pwd 'catalog-export')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate runtime export
+        if: steps.existing.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $manifest = Get-Content 'catalog-export/manifest.json' -Raw | ConvertFrom-Json
+          if ($manifest.terrariaVersion -ne '1.4.5.8') { throw 'Unexpected Terraria version' }
+          if ($manifest.itemIdCount -ne 6196) { throw "Unexpected ItemID.Count: $($manifest.itemIdCount)" }
+          if ($manifest.itemCount -ne 6195) { throw "Unexpected item count: $($manifest.itemCount)" }
+          if ($manifest.lastItemId -ne 6195) { throw "Unexpected max item id: $($manifest.lastItemId)" }
+          if ($manifest.shards.Count -ne 7) { throw "Unexpected shard count: $($manifest.shards.Count)" }
+          foreach ($shard in $manifest.shards) {
+            $payload = Get-Content (Join-Path 'catalog-export' $shard.file) -Raw | ConvertFrom-Json
+            if ($payload.items.Count -ne $shard.count) { throw "Shard count mismatch: $($shard.file)" }
+          }
+          Write-Host "Validated $($manifest.itemCount) runtime-derived items."
+
+      - name: Commit generated export
+        if: steps.existing.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          git checkout -- Terraria/Program.cs Terraria/ItemCatalogExporter.cs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalog-export
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { throw 'Exporter produced no committed data' }
+          git commit -m 'chore: export Terraria 1.4.5.8 item catalog'
+          git push
+
+      - name: Verify existing committed export
+        if: steps.existing.outputs.skip == 'true'
+        shell: pwsh
+        run: |
+          $manifest = Get-Content 'catalog-export/manifest.json' -Raw | ConvertFrom-Json
+          if ($manifest.itemCount -ne 6195 -or $manifest.lastItemId -ne 6195) {
+            throw 'Committed catalog export is invalid'
+          }
+          Write-Host "Existing committed export contains $($manifest.itemCount) items."
