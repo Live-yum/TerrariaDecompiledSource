@@ -1,0 +1,42 @@
+name: Export Terraria 1.4.5.8 Player Render Contract
+
+on:
+  push:
+    branches: [tooling/export-player-render-contract-1458]
+    paths:
+      - 'Terraria/Player.cs'
+      - 'Terraria.ID/ArmorIDs.cs'
+      - 'Terraria.Initializers/DyeInitializer.cs'
+      - 'Terraria.Graphics.Shaders/**'
+      - 'scripts/export-player-render-contract.py'
+      - '.github/workflows/export-player-render-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python scripts/export-player-render-contract.py
+      - name: Validate extracted GetHairSettings
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          m=json.loads(pathlib.Path('artifacts/player-render-contract-1458/manifest.json').read_text())
+          assert m['terrariaVersion']=='1.4.5.8'
+          assert m['getHairSettingsCharacters'] > 1000
+          assert m['switchCaseCount'] > 20
+          print(m)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: player-render-contract-1458
+          path: artifacts/player-render-contract-1458
+          if-no-files-found: error
