@@ -99,11 +99,38 @@ $isolatedSavePath = Join-Path ([IO.Path]::GetTempPath()) 'terraria-item-catalog-
 $programType.GetField('SavePath', $flags).SetValue($null, $isolatedSavePath)
 $launchParameters = $programType.GetField('LaunchParameters', $flags).GetValue($null)
 if ($launchParameters) { $launchParameters.Clear() }
+# ItemIDs 269-271 (Familiar Shirt/Pants/Wig) read appearance colors
+# from Main.player[Main.myPlayer] in Item.SetDefaults1. Normal startup creates
+# this player before content samples; establish the same minimum state here.
+$mainType = $script:serverAssembly.GetType('Terraria.Main', $true)
+$playerType = $script:serverAssembly.GetType('Terraria.Player', $true)
+$playerField = $mainType.GetField('player', $flags)
+$myPlayerField = $mainType.GetField('myPlayer', $flags)
+if (-not $playerField -or -not $myPlayerField) { throw 'Main.player/Main.myPlayer fields not found' }
+$players = $playerField.GetValue($null)
+$myPlayer = [int]$myPlayerField.GetValue($null)
+if ($null -eq $players -or $players.Length -le 0) {
+    $players = [Array]::CreateInstance($playerType, 256)
+    $playerField.SetValue($null, $players)
+}
+if ($myPlayer -lt 0 -or $myPlayer -ge $players.Length) {
+    $myPlayer = 0
+    $myPlayerField.SetValue($null, $myPlayer)
+}
+if ($null -eq $players.GetValue($myPlayer)) {
+    $players.SetValue([Activator]::CreateInstance($playerType), $myPlayer)
+}
+Write-Host "Seeded Main.player[Main.myPlayer] at index $myPlayer for appearance-dependent item defaults"
 
 $itemIdType = $script:serverAssembly.GetType('Terraria.ID.ItemID', $true)
 $itemType = $script:serverAssembly.GetType('Terraria.Item', $true)
 $count = [int]$itemIdType.GetField('Count', $flags).GetValue($null)
 if ($count -ne 6196) { throw "Expected ItemID.Count=6196, got $count" }
+$setsType = $itemIdType.GetNestedType('Sets', [Reflection.BindingFlags]'Public,NonPublic')
+$deprecatedField = $setsType.GetField('Deprecated', $flags)
+if (-not $deprecatedField) { throw 'ItemID.Sets.Deprecated was not found' }
+$deprecatedSet = $deprecatedField.GetValue($null)
+if ($null -eq $deprecatedSet -or $deprecatedSet.Length -lt $count) { throw 'ItemID.Sets.Deprecated is invalid' }
 
 $search = $itemIdType.GetField('Search', $flags).GetValue($null)
 $getName = @($search.GetType().GetMethods($flags) | Where-Object { $_.Name -eq 'GetName' -and $_.GetParameters().Count -eq 1 }) | Select-Object -First 1
@@ -151,6 +178,8 @@ $aliases = New-Object Collections.Generic.List[object]
 $missingLocalizedNames = New-Object Collections.Generic.List[int]
 $tooltipCountEn = 0
 $tooltipCountZh = 0
+$deprecatedCount = 0
+$unlocalizedIds = New-Object Collections.Generic.List[int]
 $nextId = 1
 
 function Flush-Shard {
@@ -159,7 +188,7 @@ function Flush-Shard {
     $lastId = [int]$shardItems[$shardItems.Count - 1].id
     $fileName = ('items/{0:D4}-{1:D4}.json' -f $firstId, $lastId)
     $absolute = Join-Path $OutputDir $fileName
-    $payload = [ordered]@{ schemaVersion = 1; terrariaVersion = '1.4.5.8'; firstId = $firstId; lastId = $lastId; items = @($shardItems) }
+    $payload = [ordered]@{ schemaVersion = 1; terrariaVersion = '1.4.5.8'; firstId = $firstId; lastId = $lastId; items = $shardItems.ToArray() }
     $json = $payload | ConvertTo-Json -Depth 8 -Compress
     [IO.File]::WriteAllText($absolute, $json, (New-Object Text.UTF8Encoding($false)))
     $hash = (Get-FileHash $absolute -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -186,20 +215,31 @@ for ($id = 1; $id -lt $count; $id++) {
     try { [void]$setDefaults.Invoke($item, $invokeArgs) } catch { Write-ExceptionChain $_.Exception ("SetDefaults[$id]"); throw }
 
     $resolvedType = [int]$itemType.GetField('type', $flags).GetValue($item)
-    if ($resolvedType -le 0 -or $resolvedType -ge $count) { throw "Invalid resolved type for $id: $resolvedType" }
-    $resolvedInternalName = Get-InternalName $resolvedType
+    $isDeprecated = [bool]$deprecatedSet[$id]
+    if ($isDeprecated) { $deprecatedCount++ }
+    if ($resolvedType -lt 0 -or $resolvedType -ge $count -or ($resolvedType -eq 0 -and -not $isDeprecated)) {
+        throw "Invalid resolved type for ${id}: $resolvedType (deprecated=$isDeprecated)"
+    }
+    $resolvedInternalName = if ($resolvedType -gt 0) { Get-InternalName $resolvedType } else { $requestedInternalName }
     if ([string]::IsNullOrWhiteSpace($resolvedInternalName)) { $resolvedInternalName = $requestedInternalName }
-    $isAlias = $resolvedType -ne $id
+    $isAlias = $resolvedType -gt 0 -and $resolvedType -ne $id
     if ($isAlias) {
         $aliases.Add([ordered]@{ id = $id; internalName = $requestedInternalName; resolvedType = $resolvedType; resolvedInternalName = $resolvedInternalName })
         Write-Host "Alias $id/$requestedInternalName -> $resolvedType/$resolvedInternalName"
+    }
+    if ($isDeprecated -and $resolvedType -eq 0) {
+        Write-Host "Deprecated tombstone $id/$requestedInternalName -> type 0"
     }
 
     $localizationKey = $requestedInternalName
     if (-not $enNames.ContainsKey($localizationKey) -or -not $zhNames.ContainsKey($localizationKey)) { $localizationKey = $resolvedInternalName }
     $enName = if ($enNames.ContainsKey($localizationKey)) { $enNames[$localizationKey] } else { $null }
     $zhName = if ($zhNames.ContainsKey($localizationKey)) { $zhNames[$localizationKey] } else { $null }
-    if ([string]::IsNullOrWhiteSpace($enName) -or [string]::IsNullOrWhiteSpace($zhName)) { $missingLocalizedNames.Add($id) }
+    $hasLocalizedName = -not [string]::IsNullOrWhiteSpace($enName) -and -not [string]::IsNullOrWhiteSpace($zhName)
+    if (-not $hasLocalizedName) {
+        $unlocalizedIds.Add($id)
+        Write-Host "Unlocalized ItemID $id/$requestedInternalName (resolved=$resolvedType/$resolvedInternalName deprecated=$isDeprecated)"
+    }
     $enTooltip = if ($enTooltips.ContainsKey($localizationKey)) { $enTooltips[$localizationKey] } else { $null }
     $zhTooltip = if ($zhTooltips.ContainsKey($localizationKey)) { $zhTooltips[$localizationKey] } else { $null }
     if (-not [string]::IsNullOrWhiteSpace($enTooltip)) { $tooltipCountEn++ }
@@ -217,6 +257,8 @@ for ($id = 1; $id -lt $count; $id++) {
         resolvedType = $resolvedType
         resolvedInternalName = $resolvedInternalName
         isAlias = $isAlias
+        isDeprecated = $isDeprecated
+        hasLocalizedName = $hasLocalizedName
         localizationInternalName = $localizationKey
         name = [ordered]@{ 'en-US' = $enName; 'zh-Hans' = $zhName }
         tooltip = [ordered]@{ key = ('ItemTooltip.' + $localizationKey); 'en-US' = $enTooltip; 'zh-Hans' = $zhTooltip }
@@ -228,7 +270,7 @@ for ($id = 1; $id -lt $count; $id++) {
 }
 Flush-Shard
 
-if ($missingLocalizedNames.Count -gt 0) { throw "Missing localized names for IDs: $([string]::Join(',', $missingLocalizedNames.ToArray()))" }
+Write-Host "Unlocalized ItemID entries: $($unlocalizedIds.Count) [$([string]::Join(',', $unlocalizedIds.ToArray()))]"
 if ($shards.Count -ne 25) { throw "Expected 25 shards, got $($shards.Count)" }
 
 $manifest = [ordered]@{
@@ -243,14 +285,17 @@ $manifest = [ordered]@{
     lastItemId = $count - 1
     canonicalLocalizationNameCount = [ordered]@{ 'en-US' = $enNames.Count; 'zh-Hans' = $zhNames.Count }
     aliasCount = $aliases.Count
-    aliases = @($aliases)
+    deprecatedCount = $deprecatedCount
+    unlocalizedCount = $unlocalizedIds.Count
+    unlocalizedIds = $unlocalizedIds.ToArray()
+    aliases = $aliases.ToArray()
     locales = @('en-US','zh-Hans')
     localizationFiles = @('Terraria.Localization.Content.en-US.Items.json','Terraria.Localization.Content.zh-Hans.Items.json')
     tooltipSemantics = 'ItemTooltip.<localizationInternalName>, matching the ItemTooltip language-key scheme used by Terraria.Lang.GetTooltip cache entries.'
     gameplaySource = 'Official Terraria 1.4.5.8 Item.SetDefaults(int, ItemVariant) runtime execution; gameplay.type is the resolved runtime type and may differ from the requested compatibility ID.'
     gameplayFields = @($fieldMap.Keys)
     tooltipCount = [ordered]@{ 'en-US' = $tooltipCountEn; 'zh-Hans' = $tooltipCountZh }
-    shards = @($shards)
+    shards = $shards.ToArray()
 }
 [IO.File]::WriteAllText((Join-Path $OutputDir 'manifest.json'), ($manifest | ConvertTo-Json -Depth 8), (New-Object Text.UTF8Encoding($false)))
 
@@ -262,6 +307,8 @@ Generated by executing the official Terraria 1.4.5.8 Windows dedicated-server `I
 - Requested ID coverage: 1-6195 (`ItemID.Count == 6196`)
 - Canonical localization entries: $($enNames.Count) en-US / $($zhNames.Count) zh-Hans
 - Compatibility/alias IDs resolved by runtime: $($aliases.Count)
+- Deprecated ItemID entries: $deprecatedCount
+- ItemID entries with no ItemName localization: $($unlocalizedIds.Count)
 - Item-specific tooltip entries: $tooltipCountEn en-US / $tooltipCountZh zh-Hans
 - Gameplay fields exported: $($fieldMap.Count)
 - Official runtime SHA256: `$runtimeHash`

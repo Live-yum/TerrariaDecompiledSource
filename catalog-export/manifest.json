@@ -1,0 +1,377 @@
+{
+    "schemaVersion":  1,
+    "terrariaVersion":  "1.4.5.8",
+    "sourceRepository":  "Live-yan/TerrariaDecompiledSource",
+    "sourceCommit":  "8255d34616c780af12079425ac92a0a7aed87d71",
+    "runtime":  {
+                    "file":  "TerrariaServer.exe",
+                    "fileVersion":  "1.4.5.8",
+                    "sha256":  "d87e3faf08637f6be8882c63e7f11fb7e792b0230006309618473ece0f863e1e",
+                    "source":  "https://terraria.org/api/download/pc-dedicated-server/terraria-server-1458.zip"
+                },
+    "itemIdCount":  6196,
+    "itemCount":  6195,
+    "firstItemId":  1,
+    "lastItemId":  6195,
+    "canonicalLocalizationNameCount":  {
+                                           "en-US":  6184,
+                                           "zh-Hans":  6184
+                                       },
+    "aliasCount":  6,
+    "deprecatedCount":  28,
+    "unlocalizedCount":  15,
+    "unlocalizedIds":  [
+                           3705,
+                           3706,
+                           3847,
+                           3848,
+                           3849,
+                           3850,
+                           3851,
+                           3853,
+                           3861,
+                           3862,
+                           3978,
+                           4143,
+                           4722,
+                           5013,
+                           6143
+                       ],
+    "aliases":  [
+                    {
+                        "id":  226,
+                        "internalName":  "LesserRestorationPotion",
+                        "resolvedType":  227,
+                        "resolvedInternalName":  "RestorationPotion"
+                    },
+                    {
+                        "id":  1803,
+                        "internalName":  "JungleKeyMold",
+                        "resolvedType":  1533,
+                        "resolvedInternalName":  "JungleKey"
+                    },
+                    {
+                        "id":  1804,
+                        "internalName":  "CorruptionKeyMold",
+                        "resolvedType":  1534,
+                        "resolvedInternalName":  "CorruptionKey"
+                    },
+                    {
+                        "id":  1805,
+                        "internalName":  "CrimsonKeyMold",
+                        "resolvedType":  1535,
+                        "resolvedInternalName":  "CrimsonKey"
+                    },
+                    {
+                        "id":  1806,
+                        "internalName":  "HallowedKeyMold",
+                        "resolvedType":  1536,
+                        "resolvedInternalName":  "HallowedKey"
+                    },
+                    {
+                        "id":  1807,
+                        "internalName":  "FrozenKeyMold",
+                        "resolvedType":  1537,
+                        "resolvedInternalName":  "FrozenKey"
+                    }
+                ],
+    "locales":  [
+                    "en-US",
+                    "zh-Hans"
+                ],
+    "localizationFiles":  [
+                              "Terraria.Localization.Content.en-US.Items.json",
+                              "Terraria.Localization.Content.zh-Hans.Items.json"
+                          ],
+    "tooltipSemantics":  "ItemTooltip.\u003clocalizationInternalName\u003e, matching the ItemTooltip language-key scheme used by Terraria.Lang.GetTooltip cache entries.",
+    "gameplaySource":  "Official Terraria 1.4.5.8 Item.SetDefaults(int, ItemVariant) runtime execution; gameplay.type is the resolved runtime type and may differ from the requested compatibility ID.",
+    "gameplayFields":  [
+                           "type",
+                           "width",
+                           "height",
+                           "maxStack",
+                           "value",
+                           "rare",
+                           "damage",
+                           "defense",
+                           "crit",
+                           "knockBack",
+                           "armorPenetration",
+                           "useTime",
+                           "useAnimation",
+                           "useStyle",
+                           "reuseDelay",
+                           "useTurn",
+                           "autoReuse",
+                           "channel",
+                           "mana",
+                           "healLife",
+                           "healMana",
+                           "lifeRegen",
+                           "manaIncrease",
+                           "pick",
+                           "axe",
+                           "hammer",
+                           "tileBoost",
+                           "createTile",
+                           "createWall",
+                           "placeStyle",
+                           "shoot",
+                           "shootSpeed",
+                           "ammo",
+                           "useAmmo",
+                           "buffType",
+                           "buffTime",
+                           "headSlot",
+                           "bodySlot",
+                           "legSlot",
+                           "handOnSlot",
+                           "handOffSlot",
+                           "backSlot",
+                           "frontSlot",
+                           "shoeSlot",
+                           "waistSlot",
+                           "wingSlot",
+                           "shieldSlot",
+                           "neckSlot",
+                           "faceSlot",
+                           "balloonSlot",
+                           "beardSlot",
+                           "voiceSlot",
+                           "mountType",
+                           "fishingPole",
+                           "bait",
+                           "makeNPC",
+                           "dye",
+                           "hairDye",
+                           "paint",
+                           "paintCoating",
+                           "holdStyle",
+                           "accessory",
+                           "potion",
+                           "consumable",
+                           "material",
+                           "questItem",
+                           "expertOnly",
+                           "expert",
+                           "noMelee",
+                           "noUseGraphic",
+                           "social",
+                           "vanity",
+                           "noWet",
+                           "notAmmo",
+                           "cartTrack",
+                           "uniqueStack",
+                           "shopSpecialCurrency",
+                           "shopCustomPrice",
+                           "alpha",
+                           "glowMask",
+                           "scale"
+                       ],
+    "tooltipCount":  {
+                         "en-US":  2789,
+                         "zh-Hans":  2789
+                     },
+    "shards":  [
+                   {
+                       "file":  "items/0001-0256.json",
+                       "firstId":  1,
+                       "lastId":  256,
+                       "count":  256,
+                       "sha256":  "217b7d62d48bea33ee25ed628e347227001349969f7958dabefe297146efbe91",
+                       "bytes":  383059
+                   },
+                   {
+                       "file":  "items/0257-0512.json",
+                       "firstId":  257,
+                       "lastId":  512,
+                       "count":  256,
+                       "sha256":  "fcd0828d7677658dfe55577a72d3f87ce62d7350480cea8edecfc0bc750add4e",
+                       "bytes":  385812
+                   },
+                   {
+                       "file":  "items/0513-0768.json",
+                       "firstId":  513,
+                       "lastId":  768,
+                       "count":  256,
+                       "sha256":  "71cdd0de26d67b963d14c452eaf25c1648b0bf3c146b41b6856e1ef2db20827d",
+                       "bytes":  387953
+                   },
+                   {
+                       "file":  "items/0769-1024.json",
+                       "firstId":  769,
+                       "lastId":  1024,
+                       "count":  256,
+                       "sha256":  "ec0e43f58bfea4c4515028f86616d1e7a747be505dde3e299fd89924a9419d0c",
+                       "bytes":  391191
+                   },
+                   {
+                       "file":  "items/1025-1280.json",
+                       "firstId":  1025,
+                       "lastId":  1280,
+                       "count":  256,
+                       "sha256":  "25bfdc14c7b5b45ffb84f3d950b316e89d35711d8ea8b5ddf9add480567c0b34",
+                       "bytes":  391342
+                   },
+                   {
+                       "file":  "items/1281-1536.json",
+                       "firstId":  1281,
+                       "lastId":  1536,
+                       "count":  256,
+                       "sha256":  "7ce84be77126e3a74130c4fd0a910a182e6538930f55e96771d66faf5c19495b",
+                       "bytes":  393243
+                   },
+                   {
+                       "file":  "items/1537-1792.json",
+                       "firstId":  1537,
+                       "lastId":  1792,
+                       "count":  256,
+                       "sha256":  "aed35db70c945a22d3a64182831a7eb12f9cee2b831fb3551a9b945e27d7678e",
+                       "bytes":  397325
+                   },
+                   {
+                       "file":  "items/1793-2048.json",
+                       "firstId":  1793,
+                       "lastId":  2048,
+                       "count":  256,
+                       "sha256":  "abd15001f89d627aebbbb9f96df7c696204ec1985c0ec34011ae9aeea345888b",
+                       "bytes":  390681
+                   },
+                   {
+                       "file":  "items/2049-2304.json",
+                       "firstId":  2049,
+                       "lastId":  2304,
+                       "count":  256,
+                       "sha256":  "bf4a821c10f69ff5335d05e1ae8225f1de8127ae5e2e968a3cf00a558a86e055",
+                       "bytes":  386132
+                   },
+                   {
+                       "file":  "items/2305-2560.json",
+                       "firstId":  2305,
+                       "lastId":  2560,
+                       "count":  256,
+                       "sha256":  "5af6bcffba68d7dcf83937fe594a0bb36ec14010bd3d3dee713a6b7a546dd6f2",
+                       "bytes":  388959
+                   },
+                   {
+                       "file":  "items/2561-2816.json",
+                       "firstId":  2561,
+                       "lastId":  2816,
+                       "count":  256,
+                       "sha256":  "d5a4cddeebe57f5f0406090667c4d1637c060125c5c62b403702d9805c01e152",
+                       "bytes":  388661
+                   },
+                   {
+                       "file":  "items/2817-3072.json",
+                       "firstId":  2817,
+                       "lastId":  3072,
+                       "count":  256,
+                       "sha256":  "11078022ab8a64f94257988da0a7f06292f6ec40a6d0edaf392bbfe017f0c43f",
+                       "bytes":  399997
+                   },
+                   {
+                       "file":  "items/3073-3328.json",
+                       "firstId":  3073,
+                       "lastId":  3328,
+                       "count":  256,
+                       "sha256":  "26e5895e06eafee2fc704810ee65484f421da6f85c273ca153a48d2883efd696",
+                       "bytes":  392042
+                   },
+                   {
+                       "file":  "items/3329-3584.json",
+                       "firstId":  3329,
+                       "lastId":  3584,
+                       "count":  256,
+                       "sha256":  "5b307662ad2dd3c74176f7c984ebabc745056f97b74f4c24a9c6cee37076ae6d",
+                       "bytes":  399604
+                   },
+                   {
+                       "file":  "items/3585-3840.json",
+                       "firstId":  3585,
+                       "lastId":  3840,
+                       "count":  256,
+                       "sha256":  "1d23f9502044be6857adf66b8855777d44a85b4214a65919a0d8b203ac84795a",
+                       "bytes":  401929
+                   },
+                   {
+                       "file":  "items/3841-4096.json",
+                       "firstId":  3841,
+                       "lastId":  4096,
+                       "count":  256,
+                       "sha256":  "bd6f0f28fd2b6fec2e5fb8310611434c8baf2d1b88c7e3a08a520825832f81c9",
+                       "bytes":  400116
+                   },
+                   {
+                       "file":  "items/4097-4352.json",
+                       "firstId":  4097,
+                       "lastId":  4352,
+                       "count":  256,
+                       "sha256":  "d15013cc874de17b20b2e8455e1ee8303aab038b573da3ccd7c984da2f6bcc56",
+                       "bytes":  388266
+                   },
+                   {
+                       "file":  "items/4353-4608.json",
+                       "firstId":  4353,
+                       "lastId":  4608,
+                       "count":  256,
+                       "sha256":  "27461d5fd5ca01e598bd1b8d7fc8a41407744ce70847c6b198774b518d440d1c",
+                       "bytes":  389006
+                   },
+                   {
+                       "file":  "items/4609-4864.json",
+                       "firstId":  4609,
+                       "lastId":  4864,
+                       "count":  256,
+                       "sha256":  "ce0a7187601e1e719d0fbac17b1997fc28fc7fefdf7018997adebb747aec0ea1",
+                       "bytes":  400793
+                   },
+                   {
+                       "file":  "items/4865-5120.json",
+                       "firstId":  4865,
+                       "lastId":  5120,
+                       "count":  256,
+                       "sha256":  "eaf9bd0a0939e0d16388cabb5b64068d11cf4a22eb72aed7ce7134ea631617ee",
+                       "bytes":  405114
+                   },
+                   {
+                       "file":  "items/5121-5376.json",
+                       "firstId":  5121,
+                       "lastId":  5376,
+                       "count":  256,
+                       "sha256":  "6b33337afc9dbccd5c8380675061f1b636975f2a1a8f38d676db843f334cfa27",
+                       "bytes":  399552
+                   },
+                   {
+                       "file":  "items/5377-5632.json",
+                       "firstId":  5377,
+                       "lastId":  5632,
+                       "count":  256,
+                       "sha256":  "c1bcc1399aa291d496de05c633c8def01347afce78faaa203725af39361b75ba",
+                       "bytes":  403658
+                   },
+                   {
+                       "file":  "items/5633-5888.json",
+                       "firstId":  5633,
+                       "lastId":  5888,
+                       "count":  256,
+                       "sha256":  "bb47679419e941325195bb2e35e11a1bc2c3452533221bc8263368f1c8597f43",
+                       "bytes":  390141
+                   },
+                   {
+                       "file":  "items/5889-6144.json",
+                       "firstId":  5889,
+                       "lastId":  6144,
+                       "count":  256,
+                       "sha256":  "cd730df0606d8af499efe22d4262f60423511cd97963590f296cd7f300e57d28",
+                       "bytes":  384768
+                   },
+                   {
+                       "file":  "items/6145-6195.json",
+                       "firstId":  6145,
+                       "lastId":  6195,
+                       "count":  51,
+                       "sha256":  "4f512255326f9efe2fbb716ba26e63c68f1f4c886828451411a1e5a1a650096d",
+                       "bytes":  85999
+                   }
+               ]
+}
