@@ -45,7 +45,10 @@ jobs:
 
       - name: Normalize Terraria localization with bundled Newtonsoft.Json
         shell: cmd
-        run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\normalize-item-localization.ps1 -ServerExe "%TERRARIA_SERVER_EXE%" -Paths "Terraria.Localization.Content.en-US.Items.json","Terraria.Localization.Content.zh-Hans.Items.json"'
+        run: |
+          C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\normalize-item-localization.ps1 -ServerExe "%TERRARIA_SERVER_EXE%" -Paths "Terraria.Localization.Content.en-US.Items.json"
+          if errorlevel 1 exit /b %errorlevel%
+          C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\normalize-item-localization.ps1 -ServerExe "%TERRARIA_SERVER_EXE%" -Paths "Terraria.Localization.Content.zh-Hans.Items.json"
 
       - name: Export all 6195 items from official runtime
         shell: cmd
@@ -83,6 +86,7 @@ jobs:
 
       - name: Restore source localization files
         shell: powershell
+        if: always()
         run: git checkout -- Terraria.Localization.Content.en-US.Items.json Terraria.Localization.Content.zh-Hans.Items.json
 
       - name: Commit deterministic export when changed
