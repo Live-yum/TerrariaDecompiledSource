@@ -19,11 +19,11 @@ function Write-ExceptionChain([Exception] $error, [string] $prefix = 'exception'
 }
 
 [AppDomain]::CurrentDomain.add_AssemblyResolve({
-    param($sender, $args)
+    param($sender, $eventArgs)
     try {
-        $name = New-Object System.Reflection.AssemblyName($args.Name)
-        $simple = $name.Name
-        Write-Host "AssemblyResolve: $simple"
+        $requested = [Reflection.AssemblyName]::new($eventArgs.Name)
+        $simple = $requested.Name
+        if (-not $simple) { return $null }
         foreach ($candidate in @(
             (Join-Path $serverDir ($simple + '.dll')),
             (Join-Path $serverDir ($simple + '.exe'))
@@ -31,32 +31,14 @@ function Write-ExceptionChain([Exception] $error, [string] $prefix = 'exception'
             if (Test-Path $candidate) {
                 try {
                     $loaded = [Reflection.Assembly]::LoadFrom($candidate)
-                    if ($loaded.GetName().Name -eq $simple) {
-                        Write-Host "Resolved $simple from $candidate"
-                        return $loaded
-                    }
+                    if ($loaded.GetName().Name -eq $simple) { return $loaded }
                 } catch {}
             }
         }
-        if ($script:serverAssembly) {
-            $resource = $script:serverAssembly.GetManifestResourceNames() |
-                Where-Object { $_ -eq ($simple + '.dll') -or $_ -like ('*.' + $simple + '.dll') } |
-                Select-Object -First 1
-            if ($resource) {
-                Write-Host "Resolving $simple from embedded resource $resource"
-                $stream = $script:serverAssembly.GetManifestResourceStream($resource)
-                try {
-                    $buffer = New-Object byte[] $stream.Length
-                    [void]$stream.Read($buffer, 0, $buffer.Length)
-                    return [Reflection.Assembly]::Load($buffer)
-                } finally {
-                    $stream.Dispose()
-                }
-            }
+        foreach ($loaded in [AppDomain]::CurrentDomain.GetAssemblies()) {
+            if ($loaded.GetName().Name -eq $simple) { return $loaded }
         }
-    } catch {
-        Write-Host "AssemblyResolve failed for $($args.Name): $($_.Exception.Message)"
-    }
+    } catch {}
     return $null
 })
 
@@ -68,6 +50,45 @@ if (-not $version.StartsWith('1.4.5.8')) {
 
 $script:serverAssembly = [Reflection.Assembly]::LoadFrom($ServerExe)
 Write-Host "Loaded assembly $($script:serverAssembly.FullName)"
+
+# TerrariaServer embeds several managed dependencies (notably ReLogic and
+# Newtonsoft.Json). Preload all managed DLL resources before touching ItemID so
+# static initializers resolve against the same assemblies used by the game.
+$loadedNames = @{}
+foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+    try { $loadedNames[$assembly.GetName().Name] = $true } catch {}
+}
+foreach ($resource in $script:serverAssembly.GetManifestResourceNames()) {
+    if (-not $resource.EndsWith('.dll', [StringComparison]::OrdinalIgnoreCase)) { continue }
+    $stream = $null
+    try {
+        $stream = $script:serverAssembly.GetManifestResourceStream($resource)
+        if (-not $stream) { continue }
+        $buffer = New-Object byte[] ([int]$stream.Length)
+        $offset = 0
+        while ($offset -lt $buffer.Length) {
+            $read = $stream.Read($buffer, $offset, $buffer.Length - $offset)
+            if ($read -le 0) { break }
+            $offset += $read
+        }
+        if ($offset -ne $buffer.Length) { throw "Short embedded read for $resource" }
+        try {
+            $embedded = [Reflection.Assembly]::Load($buffer)
+            $embeddedName = $embedded.GetName().Name
+            $loadedNames[$embeddedName] = $true
+            Write-Host "Preloaded embedded $resource -> $embeddedName"
+        } catch [BadImageFormatException] {
+            Write-Host "Skipped non-managed embedded resource $resource"
+        } catch [FileLoadException] {
+            Write-Host "Skipped already/incompatibly loaded embedded resource $resource : $($_.Exception.Message)"
+        }
+    } finally {
+        if ($stream) { $stream.Dispose() }
+    }
+}
+if (-not $loadedNames.ContainsKey('ReLogic')) {
+    throw 'Embedded ReLogic assembly was not loaded'
+}
 
 $flags = [Reflection.BindingFlags]'Public,NonPublic,Static,Instance'
 $itemIdType = $script:serverAssembly.GetType('Terraria.ID.ItemID', $true)
@@ -93,32 +114,34 @@ foreach ($candidate in $setDefaultsCandidates) {
 }
 $setDefaults = $setDefaultsCandidates[0]
 
-$item = [Activator]::CreateInstance($itemType)
-$params = $setDefaults.GetParameters()
-$invokeArgs = New-Object object[] $params.Count
-$invokeArgs[0] = 1
-for ($i = 1; $i -lt $params.Count; $i++) {
-    if ($params[$i].HasDefaultValue) {
-        $invokeArgs[$i] = $params[$i].DefaultValue
-    } elseif ($params[$i].ParameterType -eq [bool]) {
-        $invokeArgs[$i] = $false
-    } elseif ($params[$i].ParameterType.IsValueType) {
-        $invokeArgs[$i] = [Activator]::CreateInstance($params[$i].ParameterType)
-    } else {
-        $invokeArgs[$i] = $null
+foreach ($probeId in @(1, 757, 4956, 6145, 6146, 6195)) {
+    $item = [Activator]::CreateInstance($itemType)
+    $params = $setDefaults.GetParameters()
+    $invokeArgs = New-Object object[] $params.Count
+    $invokeArgs[0] = $probeId
+    for ($i = 1; $i -lt $params.Count; $i++) {
+        if ($params[$i].HasDefaultValue) {
+            $invokeArgs[$i] = $params[$i].DefaultValue
+        } elseif ($params[$i].ParameterType -eq [bool]) {
+            $invokeArgs[$i] = $false
+        } elseif ($params[$i].ParameterType.IsValueType) {
+            $invokeArgs[$i] = [Activator]::CreateInstance($params[$i].ParameterType)
+        } else {
+            $invokeArgs[$i] = $null
+        }
     }
-}
-try {
-    [void]$setDefaults.Invoke($item, $invokeArgs)
-} catch {
-    Write-ExceptionChain $_.Exception 'SetDefaults'
-    throw
-}
-
-foreach ($fieldName in @('type','maxStack','damage','defense','useTime','useAnimation','useStyle','value','rare','pick','axe','hammer')) {
-    $field = $itemType.GetField($fieldName, $flags)
-    if (-not $field) { throw "Missing Item field: $fieldName" }
-    Write-Host "$fieldName=$($field.GetValue($item))"
+    try {
+        [void]$setDefaults.Invoke($item, $invokeArgs)
+    } catch {
+        Write-ExceptionChain $_.Exception ("SetDefaults[$probeId]")
+        throw
+    }
+    $actualType = [int]$itemType.GetField('type', $flags).GetValue($item)
+    if ($actualType -ne $probeId) { throw "SetDefaults type mismatch: requested=$probeId actual=$actualType" }
+    $maxStack = $itemType.GetField('maxStack', $flags).GetValue($item)
+    $damage = $itemType.GetField('damage', $flags).GetValue($item)
+    $value = $itemType.GetField('value', $flags).GetValue($item)
+    Write-Host "SetDefaults($probeId): type=$actualType maxStack=$maxStack damage=$damage value=$value"
 }
 
 Write-Host 'Official runtime Item.SetDefaults probe passed.'
