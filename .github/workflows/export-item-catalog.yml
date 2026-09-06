@@ -69,10 +69,13 @@ jobs:
           if ($manifest.itemIdCount -ne 6196 -or $manifest.itemCount -ne 6195 -or $manifest.lastItemId -ne 6195) { throw 'Incomplete ItemID range' }
           if ($manifest.shards.Count -ne 25) { throw "Expected 25 shards, got $($manifest.shards.Count)" }
           if ($manifest.gameplayFields.Count -lt 35) { throw "Too few gameplay fields: $($manifest.gameplayFields.Count)" }
+          if ($manifest.canonicalLocalizationNameCount.'en-US' -ne 6184 -or $manifest.canonicalLocalizationNameCount.'zh-Hans' -ne 6184) { throw 'Unexpected ItemName localization count' }
+
           $nextId = 1
           $seen = 0
           $seenAliases = 0
           $seenDeprecated = 0
+          $unlocalizedIds = New-Object Collections.Generic.List[int]
           foreach ($shard in $manifest.shards) {
             $path = Join-Path 'catalog-export' $shard.file
             if (-not (Test-Path $path)) { throw "Missing shard $path" }
@@ -89,16 +92,25 @@ jobs:
               if ($item.isAlias) { $seenAliases++ }
               if ($item.isDeprecated) { $seenDeprecated++ }
               if (-not $item.internalName -or -not $item.resolvedInternalName) { throw "Missing ItemID identity at $($item.id)" }
-              if ((-not $item.isDeprecated) -and (-not $item.name.'en-US' -or -not $item.name.'zh-Hans')) { throw "Missing localized identity at $($item.id)" }
+              if ($item.hasLocalizedName) {
+                if (-not $item.name.'en-US' -or -not $item.name.'zh-Hans') { throw "Localized ItemID missing display name at $($item.id)" }
+              } else {
+                $unlocalizedIds.Add([int]$item.id)
+              }
               if ($null -eq $item.gameplay.maxStack -or $null -eq $item.gameplay.value -or $null -eq $item.gameplay.damage) { throw "Missing gameplay core fields at $($item.id)" }
               $nextId++
               $seen++
             }
           }
           if ($seen -ne 6195 -or $nextId -ne 6196) { throw "Coverage mismatch: $seen IDs" }
-          if ($seenAliases -ne $manifest.aliasCount) { throw "Alias count mismatch" }
-          if ($seenDeprecated -ne $manifest.deprecatedCount) { throw "Deprecated count mismatch" }
-          Write-Host "Validated all $seen ItemID entries; aliases=$seenAliases deprecated=$seenDeprecated fields=$($manifest.gameplayFields.Count) zh-Hans item tooltips=$($manifest.tooltipCount.'zh-Hans')"
+          if ($seenAliases -ne $manifest.aliasCount) { throw "Alias count mismatch: manifest=$($manifest.aliasCount) actual=$seenAliases" }
+          if ($seenDeprecated -ne $manifest.deprecatedCount) { throw "Deprecated count mismatch: manifest=$($manifest.deprecatedCount) actual=$seenDeprecated" }
+          if ($unlocalizedIds.Count -ne $manifest.unlocalizedCount) { throw "Unlocalized count mismatch: manifest=$($manifest.unlocalizedCount) actual=$($unlocalizedIds.Count)" }
+          $expectedUnlocalized = @($manifest.unlocalizedIds | ForEach-Object { [int]$_ })
+          $actualUnlocalized = @($unlocalizedIds.ToArray())
+          if (($expectedUnlocalized -join ',') -ne ($actualUnlocalized -join ',')) { throw "Unlocalized ID list mismatch: manifest=$($expectedUnlocalized -join ',') actual=$($actualUnlocalized -join ',')" }
+          if (($actualUnlocalized -join ',') -ne '3705,3706,3853,4143,5013') { throw "Unexpected official-unlocalized ItemID set: $($actualUnlocalized -join ',')" }
+          Write-Host "Validated all $seen ItemID entries; aliases=$seenAliases deprecated=$seenDeprecated unlocalized=$($unlocalizedIds.Count) fields=$($manifest.gameplayFields.Count) zh-Hans item tooltips=$($manifest.tooltipCount.'zh-Hans')"
 
       - name: Restore source localization files
         shell: powershell
