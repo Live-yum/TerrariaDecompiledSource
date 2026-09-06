@@ -76,6 +76,7 @@ jobs:
           $seenAliases = 0
           $seenDeprecated = 0
           $unlocalizedIds = New-Object Collections.Generic.List[int]
+          $activeUnlocalizedIds = New-Object Collections.Generic.List[int]
           foreach ($shard in $manifest.shards) {
             $path = Join-Path 'catalog-export' $shard.file
             if (-not (Test-Path $path)) { throw "Missing shard $path" }
@@ -96,6 +97,7 @@ jobs:
                 if (-not $item.name.'en-US' -or -not $item.name.'zh-Hans') { throw "Localized ItemID missing display name at $($item.id)" }
               } else {
                 $unlocalizedIds.Add([int]$item.id)
+                if (-not $item.isDeprecated) { $activeUnlocalizedIds.Add([int]$item.id) }
               }
               if ($null -eq $item.gameplay.maxStack -or $null -eq $item.gameplay.value -or $null -eq $item.gameplay.damage) { throw "Missing gameplay core fields at $($item.id)" }
               $nextId++
@@ -108,9 +110,11 @@ jobs:
           if ($unlocalizedIds.Count -ne $manifest.unlocalizedCount) { throw "Unlocalized count mismatch: manifest=$($manifest.unlocalizedCount) actual=$($unlocalizedIds.Count)" }
           $expectedUnlocalized = @($manifest.unlocalizedIds | ForEach-Object { [int]$_ })
           $actualUnlocalized = @($unlocalizedIds.ToArray())
+          $actualActiveUnlocalized = @($activeUnlocalizedIds.ToArray())
           if (($expectedUnlocalized -join ',') -ne ($actualUnlocalized -join ',')) { throw "Unlocalized ID list mismatch: manifest=$($expectedUnlocalized -join ',') actual=$($actualUnlocalized -join ',')" }
-          if (($actualUnlocalized -join ',') -ne '3705,3706,3853,4143,5013') { throw "Unexpected official-unlocalized ItemID set: $($actualUnlocalized -join ',')" }
-          Write-Host "Validated all $seen ItemID entries; aliases=$seenAliases deprecated=$seenDeprecated unlocalized=$($unlocalizedIds.Count) fields=$($manifest.gameplayFields.Count) zh-Hans item tooltips=$($manifest.tooltipCount.'zh-Hans')"
+          if (($actualUnlocalized -join ',') -ne '3705,3706,3847,3848,3849,3850,3851,3853,3861,3862,3978,4143,4722,5013,6143') { throw "Unexpected full unlocalized ItemID set: $($actualUnlocalized -join ',')" }
+          if (($actualActiveUnlocalized -join ',') -ne '3705,3706,3853,4143,5013') { throw "Unexpected active internal-only ItemID set: $($actualActiveUnlocalized -join ',')" }
+          Write-Host "Validated all $seen ItemID entries; aliases=$seenAliases deprecated=$seenDeprecated unlocalized=$($unlocalizedIds.Count) active-unlocalized=$($activeUnlocalizedIds.Count) fields=$($manifest.gameplayFields.Count) zh-Hans item tooltips=$($manifest.tooltipCount.'zh-Hans')"
 
       - name: Restore source localization files
         shell: powershell
