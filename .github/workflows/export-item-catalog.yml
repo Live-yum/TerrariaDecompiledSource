@@ -11,7 +11,7 @@ permissions:
 jobs:
   export:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +39,54 @@ jobs:
           if ($process.ExitCode -notin @(0, 3010)) { throw "XNA installer failed with exit code $($process.ExitCode)" }
           Write-Host "XNA Framework installer exit code: $($process.ExitCode)"
 
-      - name: Probe official Item.SetDefaults runtime in x86 CLR
+      - name: Probe representative Item.SetDefaults calls
         shell: cmd
         run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\probe-official-item-runtime.ps1 -ServerExe "%TERRARIA_SERVER_EXE%"'
+
+      - name: Export all 6195 items from official runtime
+        shell: cmd
+        run: 'C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\export-official-item-catalog.ps1 -ServerExe "%TERRARIA_SERVER_EXE%" -OutputDir "catalog-export"'
+
+      - name: Validate generated catalog
+        shell: powershell
+        run: |
+          $manifest = Get-Content 'catalog-export/manifest.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($manifest.terrariaVersion -ne '1.4.5.8') { throw 'Unexpected Terraria version' }
+          if ($manifest.sourceCommit -ne '8255d34616c780af12079425ac92a0a7aed87d71') { throw 'Unexpected source commit' }
+          if ($manifest.itemIdCount -ne 6196) { throw "Unexpected ItemID.Count: $($manifest.itemIdCount)" }
+          if ($manifest.itemCount -ne 6195 -or $manifest.lastItemId -ne 6195) { throw 'Incomplete item range' }
+          if ($manifest.shards.Count -ne 25) { throw "Expected 25 shards, got $($manifest.shards.Count)" }
+          $nextId = 1
+          $seen = 0
+          foreach ($shard in $manifest.shards) {
+            $path = Join-Path 'catalog-export' $shard.file
+            if (-not (Test-Path $path)) { throw "Missing shard $path" }
+            $actualHash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -ne $shard.sha256) { throw "Shard hash mismatch: $($shard.file)" }
+            if ((Get-Item $path).Length -gt 950000) { throw "Shard exceeds safe size: $($shard.file)" }
+            $payload = Get-Content $path -Raw -Encoding UTF8 | ConvertFrom-Json
+            foreach ($item in $payload.items) {
+              if ($item.id -ne $nextId) { throw "ID gap: expected $nextId got $($item.id)" }
+              if ($item.gameplay.type -ne $item.id) { throw "SetDefaults type mismatch at $($item.id)" }
+              if (-not $item.internalName -or -not $item.name.'en-US' -or -not $item.name.'zh-Hans') { throw "Missing localized identity at $($item.id)" }
+              if ($null -eq $item.gameplay.maxStack -or $null -eq $item.gameplay.value -or $null -eq $item.gameplay.damage) { throw "Missing gameplay core fields at $($item.id)" }
+              $nextId += 1
+              $seen += 1
+            }
+          }
+          if ($seen -ne 6195 -or $nextId -ne 6196) { throw "Coverage mismatch: $seen items" }
+          Write-Host "Validated all $seen Terraria 1.4.5.8 items. zh-Hans tooltips=$($manifest.tooltipCount.'zh-Hans')"
+
+      - name: Commit deterministic export when changed
+        shell: powershell
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalog-export
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Catalog export already matches committed data.'
+            exit 0
+          }
+          git commit -m 'chore: export Terraria 1.4.5.8 item database'
+          git push
