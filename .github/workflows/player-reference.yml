@@ -1,0 +1,33 @@
+name: Player reference inputs
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/player-editor-reference]
+permissions:
+  contents: read
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 8255d34616c780af12079425ac92a0a7aed87d71
+          persist-credentials: false
+      - name: Export only player tool reference inputs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,tarfile,os
+          files=[Path('Terraria/Item.cs'),Path('Terraria/Player.cs'),Path('Terraria.ID/ItemID.cs'),Path('Terraria.ID/PrefixID.cs'),Path('Terraria.GameContent.Prefixes/PrefixLegacy.cs')]
+          files+=list(Path('.').glob('Terraria.Localization.Content.zh-Hans*.json'))
+          files+=list(Path('.').glob('Terraria.DataStructures/PlayerDraw*.cs'))
+          manifest={'repository':'Live-yan/TerrariaDecompiledSource','commit':'8255d34616c780af12079425ac92a0a7aed87d71','files':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
+          Path('PLAYER_GAME_SOURCE.json').write_text(json.dumps(manifest,indent=2))
+          with tarfile.open(Path(os.environ['RUNNER_TEMP'])/'player-game-reference.tar.gz','w:gz') as archive:
+              for p in files+[Path('PLAYER_GAME_SOURCE.json')]:archive.add(p,arcname=str(p))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: player-game-reference
+          path: ${{ runner.temp }}/player-game-reference.tar.gz
+          retention-days: 14
