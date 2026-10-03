@@ -1,0 +1,36 @@
+name: Execute pinned placement source slice
+on:
+  push:
+    branches: [audit/circuit-mechanics-8255d346]
+    paths: ['circuit-audit/**', '.github/workflows/circuit-placement-slice.yml']
+permissions:
+  contents: read
+jobs:
+  source-slice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Execute only placement fields from fixed source
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/game-source" reports/circuit-placement
+          git archive 8255d34616c780af12079425ac92a0a7aed87d71 Terraria/Item.cs Terraria.ID/ItemID.cs | tar -x -C "$RUNNER_TEMP/game-source"
+          cat > circuit-audit/extractor.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup><ItemGroup><Reference Include="Microsoft.CodeAnalysis"><HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath></Reference><Reference Include="Microsoft.CodeAnalysis.CSharp"><HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath></Reference></ItemGroup></Project>
+          XML
+          printf '{"sdk":{"version":"8.0.100","rollForward":"latestFeature"}}' > global.json
+          set -o pipefail
+          dotnet run --project circuit-audit/extractor.csproj -- "$RUNNER_TEMP/game-source" reports/circuit-placement 2>&1 | tee reports/circuit-placement/execution.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: circuit-placement-source-slice
+          path: reports/circuit-placement
+          retention-days: 3
