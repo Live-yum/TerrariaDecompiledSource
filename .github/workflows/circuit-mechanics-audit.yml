@@ -1,0 +1,25 @@
+name: Pinned mechanics source audit
+on:
+  push:
+    branches: [audit/circuit-mechanics-8255d346]
+    paths: [.github/workflows/circuit-mechanics-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 8255d34616c780af12079425ac92a0a7aed87d71
+          persist-credentials: false
+      - run: |
+          mkdir -p reports/mechanics-source
+          git rev-parse HEAD > reports/mechanics-source/commit.txt
+          git archive --format=tar HEAD | gzip > reports/mechanics-source/source.tgz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mechanics-source-8255d346
+          path: reports/mechanics-source
+          retention-days: 3
