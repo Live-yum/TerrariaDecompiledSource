@@ -1,0 +1,38 @@
+name: Circuit source audit compiler
+on:
+  push:
+    branches: [audit/circuit-mechanics-8255d346]
+    paths: ['.github/workflows/circuit-compiler-audit.yml']
+permissions:
+  contents: read
+jobs:
+  compiler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Package the source-audit toolchain only
+        shell: bash
+        run: |
+          export OUT="$RUNNER_TEMP/circuit-source-compiler"
+          mkdir -p "$OUT/dotnet/host/fxr" "$OUT/dotnet/shared/Microsoft.NETCore.App" "$OUT/compiler" "$OUT/references"
+          python3 - <<'PY'
+          import os,pathlib,shutil,subprocess
+          root=pathlib.Path(subprocess.check_output(['which','dotnet'],text=True).strip()).resolve().parent
+          out=pathlib.Path(os.environ['OUT'])
+          def latest(p): return sorted(p.glob('8.*'),key=lambda q:tuple(map(int,q.name.split('.'))))[-1]
+          shutil.copy2(root/'dotnet',out/'dotnet/dotnet')
+          for path,dest in [(latest(root/'host/fxr'),out/'dotnet/host/fxr'),(latest(root/'shared/Microsoft.NETCore.App'),out/'dotnet/shared/Microsoft.NETCore.App')]: shutil.copytree(path,dest/path.name)
+          shutil.copytree(latest(root/'sdk')/'Roslyn/bincore',out/'compiler',dirs_exist_ok=True)
+          shutil.copytree(latest(root/'packs/Microsoft.NETCore.App.Ref')/'ref/net8.0',out/'references',dirs_exist_ok=True)
+          PY
+          mkdir -p reports
+          tar -C "$OUT" -czf reports/compiler.tgz .
+          sha256sum reports/compiler.tgz > reports/sha256.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: circuit-source-compiler
+          path: reports
+          retention-days: 3
