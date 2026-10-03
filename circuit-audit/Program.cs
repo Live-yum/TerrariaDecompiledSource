@@ -11,7 +11,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 class ItemSlice : CSharpSyntaxRewriter {
     readonly HashSet<string> fields = new() {"createTile", "placeStyle", "maxStack", "mech"};
-    readonly HashSet<string> helpers = new() {"DefaultToPlaceableTile", "DefaultToTorch", "DefaultToMusicBox", "SetDefaults1", "SetDefaults2", "SetDefaults3", "SetDefaults4", "SetDefaults5"};
+    readonly HashSet<string> helpers = new() {"DefaultToPlaceableTile", "DefaultToTorch", "DefaultToMusicBox", "DefaultToMonolith", "DefaultToBanner", "SetDefaults1", "SetDefaults2", "SetDefaults3", "SetDefaults4", "SetDefaults5"};
     public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node) {
         if (node.Expression is AssignmentExpressionSyntax a && fields.Contains(a.Left.ToString())) return node;
         if (node.Expression is InvocationExpressionSyntax c && helpers.Contains(c.Expression.ToString())) return node;
@@ -40,8 +40,8 @@ class Program {
    var methods=src.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Where(m=>Enumerable.Range(1,5).Select(i=>"SetDefaults"+i).Contains(m.Identifier.Text)).ToArray();
    if(methods.Length!=5) throw new Exception("Expected five defaults methods");
    var rw=new ItemSlice();
-   string text="using System; using System.Collections.Generic; public static class BoolExtensions { public static int ToInt(this bool b) => b?1:0; } public class ExtractedItem { public int createTile=-1,placeStyle=0,maxStack=1; public bool mech=false; "+
-    "void DefaultToPlaceableTile(int tileIDToPlace,int tileStyleToPlace=0) {createTile=tileIDToPlace;placeStyle=tileStyleToPlace;} void DefaultToTorch(int tileStyleToPlace,bool allowWaterPlacement=false){createTile=4;placeStyle=tileStyleToPlace;} void DefaultToMusicBox(int style){createTile=139;placeStyle=style;} "+
+   string text="using System; using System.Collections.Generic; public static class BoolExtensions { public static int ToInt(this bool b) => b?1:0; } public class ExtractedItem { public int createTile=-1,placeStyle=0,maxStack=9999; public bool mech=false; "+
+    "void DefaultToPlaceableTile(int tileIDToPlace,int tileStyleToPlace=0) {createTile=tileIDToPlace;placeStyle=tileStyleToPlace;} void DefaultToTorch(int tileStyleToPlace,bool allowWaterPlacement=false){createTile=4;placeStyle=tileStyleToPlace;} void DefaultToMusicBox(int style){createTile=139;placeStyle=style;} void DefaultToMonolith(int tileIDToPlace,int tileStyleToPlace=0){DefaultToPlaceableTile(tileIDToPlace,tileStyleToPlace);} void DefaultToBanner(int tileStyleToPlace=0){DefaultToPlaceableTile(91,tileStyleToPlace);} "+
     "public void Run(int type){if(type<=1000)SetDefaults1(type);else if(type<=2001)SetDefaults2(type);else if(type<=3000)SetDefaults3(type);else if(type<=3989)SetDefaults4(type);else SetDefaults5(type);}"+
     string.Join("\n",methods.Select(m=>rw.Visit(m)!.NormalizeWhitespace().ToFullString()))+"}";
    File.WriteAllText(Path.Combine(outdir,"ItemDefaults.slice.cs.txt"),text);
